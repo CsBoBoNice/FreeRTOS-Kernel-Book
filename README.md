@@ -9,7 +9,6 @@
 ## 翻译信息
 - 翻译工具: [TxtLLMTranslate](https://github.com/CsBoBoNice/TxtLLMTranslate)
 - 使用模型: gemma-3-12b-it-Q5_K_M.gguf
-| 工具 | 参数 |
-|------|------|
-| llama.cpp | --temp 0 -c 6000 |
-| TxtLLMTranslate | 最大长度3000 最小长度1000 开启历史记录 历史记录数 1 |
+- 翻译参数:
+  - llama.cpp: --temp 0 -c 6000
+  - TxtLLMTranslate: 最大长度3000 最小长度1000 开启历史记录 历史记录数 1
