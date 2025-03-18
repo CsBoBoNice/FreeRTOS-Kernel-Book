@@ -3,32 +3,30 @@
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  本文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了FreeRTOS书籍《掌握FreeRTOS实时内核》中列出的示例的Windows端口实现。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org 头文件包含 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
 
-/* Demo includes. */
+/* 示例程序相关的头文件 */
 #include "supporting_functions.h"
 
-/* The periods assigned to the one-shot and auto-reload timers respectively. */
-#define mainONE_SHOT_TIMER_PERIOD       ( pdMS_TO_TICKS( 3333UL ) )
-#define mainAUTO_RELOAD_TIMER_PERIOD    ( pdMS_TO_TICKS( 500UL ) )
+/* 分别为单次触发定时器和自动重载定时器分配的周期 */
+#define mainONE_SHOT_TIMER_PERIOD       ( pdMS_TO_TICKS( 3333UL ) ) /* 单次触发定时器周期为3333毫秒 */
+#define mainAUTO_RELOAD_TIMER_PERIOD    ( pdMS_TO_TICKS( 500UL ) )  /* 自动重载定时器周期为500毫秒 */
 
 /*-----------------------------------------------------------*/
 
 /*
- * The callback functions used by the one-shot and auto-reload timers
- * respectively.
+ * 单次触发定时器和自动重载定时器分别使用的回调函数
  */
 static void prvOneShotTimerCallback( TimerHandle_t xTimer );
 static void prvAutoReloadTimerCallback( TimerHandle_t xTimer );
@@ -40,49 +38,44 @@ int main( void )
     TimerHandle_t xAutoReloadTimer, xOneShotTimer;
     BaseType_t xTimer1Started, xTimer2Started;
 
-    /* Create the one shot software timer, storing the handle to the created
-     * software timer in xOneShotTimer. */
-    xOneShotTimer = xTimerCreate( "OneShot",                 /* Text name for the software timer - not used by FreeRTOS. */
-                                  mainONE_SHOT_TIMER_PERIOD, /* The software timer's period in ticks. */
-                                  pdFALSE,                   /* Setting uxAutoRealod to pdFALSE creates a one-shot software timer. */
-                                  0,                         /* This example does not use the timer id. */
-                                  prvOneShotTimerCallback ); /* The callback function to be used by the software timer being created. */
+    /* 创建单次触发软件定时器，将创建的软件定时器句柄存储在xOneShotTimer中 */
+    xOneShotTimer = xTimerCreate( 
+                      "OneShot",                 /* 软件定时器的文本名称 - FreeRTOS不使用此名称，仅用于调试 */
+                      mainONE_SHOT_TIMER_PERIOD, /* 软件定时器的周期（以节拍为单位） */
+                      pdFALSE,                   /* 将uxAutoReload设置为pdFALSE创建单次触发软件定时器 */
+                      0,                         /* 本示例不使用定时器ID */
+                      prvOneShotTimerCallback ); /* 由正在创建的软件定时器使用的回调函数 */
 
-    /* Create the auto-reload software timer, storing the handle to the created
-     * software timer in xAutoReloadTimer. */
-    xAutoReloadTimer = xTimerCreate( "AutoReload",                 /* Text name for the software timer - not used by FreeRTOS. */
-                                     mainAUTO_RELOAD_TIMER_PERIOD, /* The software timer's period in ticks. */
-                                     pdTRUE,                       /* Set uxAutoRealod to pdTRUE to create an auto-reload software timer. */
-                                     0,                            /* This example does not use the timer id. */
-                                     prvAutoReloadTimerCallback ); /* The callback function to be used by the software timer being created. */
+    /* 创建自动重载软件定时器，将创建的软件定时器句柄存储在xAutoReloadTimer中 */
+    xAutoReloadTimer = xTimerCreate( 
+                         "AutoReload",                 /* 软件定时器的文本名称 - FreeRTOS不使用此名称，仅用于调试 */
+                         mainAUTO_RELOAD_TIMER_PERIOD, /* 软件定时器的周期（以节拍为单位） */
+                         pdTRUE,                       /* 将uxAutoReload设置为pdTRUE创建自动重载软件定时器 */
+                         0,                            /* 本示例不使用定时器ID */
+                         prvAutoReloadTimerCallback ); /* 由正在创建的软件定时器使用的回调函数 */
 
-    /* Check the timers were created. */
+    /* 检查定时器是否创建成功 */
     if( ( xOneShotTimer != NULL ) && ( xAutoReloadTimer != NULL ) )
     {
-        /* Start the software timers, using a block time of 0 (no block time).
-         * The scheduler has not been started yet so any block time specified here
-         * would be ignored anyway. */
+        /* 启动软件定时器，使用阻塞时间为0（无阻塞）。
+         * 调度器尚未启动，因此此处指定的任何阻塞时间都将被忽略。 */
         xTimer1Started = xTimerStart( xOneShotTimer, 0 );
         xTimer2Started = xTimerStart( xAutoReloadTimer, 0 );
 
-        /* The implementation of xTimerStart() uses the timer command queue, and
-         * xTimerStart() will fail if the timer command queue gets full.  The timer
-         * service task does not get created until the scheduler is started, so all
-         * commands sent to the command queue will stay in the queue until after
-         * the scheduler has been started.  Check both calls to xTimerStart()
-         * passed. */
+        /* xTimerStart()的实现使用定时器命令队列，如果定时器命令队列已满，
+         * 则xTimerStart()将失败。定时器服务任务直到调度器启动后才被创建，
+         * 所以所有发送到命令队列的命令都将保留在队列中，直到调度器启动后。
+         * 检查两次调用xTimerStart()是否都成功。 */
         if( ( xTimer1Started == pdPASS ) && ( xTimer2Started == pdPASS ) )
         {
-            /* Start the scheduler. */
+            /* 启动调度器 */
             vTaskStartScheduler();
         }
     }
 
-    /* If the scheduler was started then the following line should never be
-     * reached because vTaskStartScheduler() will only return if there was not
-     * enough FreeRTOS heap memory available to create the Idle and (if configured)
-     * Timer tasks.  Heap management, and techniques for trapping heap exhaustion,
-     * are described in the book text. */
+    /* 如果调度器启动，则永远不应到达下面的代码，因为vTaskStartScheduler()只有在
+     * 没有足够的FreeRTOS堆内存可用于创建空闲任务和（如果配置了）定时器任务时才会返回。
+     * 堆内存管理和捕获堆耗尽的技术在书中有详细描述。 */
     for( ; ; )
     {
     }
@@ -95,11 +88,11 @@ static void prvOneShotTimerCallback( TimerHandle_t xTimer )
 {
     static TickType_t xTimeNow;
 
-    /* Obtain the current tick count. */
+    /* 获取当前的节拍计数 */
     xTimeNow = xTaskGetTickCount();
 
-    /* Output a string to show the time at which the callback was executed. */
-    vPrintStringAndNumber( "One-shot timer callback executing", xTimeNow );
+    /* 输出一个字符串，显示回调执行的时间 */
+    vPrintStringAndNumber( "单次触发定时器回调执行", xTimeNow );
 }
 /*-----------------------------------------------------------*/
 
@@ -107,10 +100,10 @@ static void prvAutoReloadTimerCallback( TimerHandle_t xTimer )
 {
     static TickType_t xTimeNow;
 
-    /* Obtain the current tick count. */
+    /* 获取当前的节拍计数 */
     xTimeNow = xTaskGetTickCount();
 
-    /* Output a string to show the time at which the callback was executed. */
-    vPrintStringAndNumber( "Auto-reload timer callback executing", xTimeNow );
+    /* 输出一个字符串，显示回调执行的时间 */
+    vPrintStringAndNumber( "自动重载定时器回调执行", xTimeNow );
 }
 /*-----------------------------------------------------------*/

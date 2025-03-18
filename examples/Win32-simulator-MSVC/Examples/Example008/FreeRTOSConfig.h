@@ -1,66 +1,57 @@
 /*
-    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
-    All rights reserved
+    FreeRTOS V9.0.0 - 版权所有 (C) 2016 Real Time Engineers Ltd.
+    保留所有权利
 
-    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
-
-    ***************************************************************************
-     *                                                                       *
-     *    FreeRTOS provides completely free yet professionally developed,    *
-     *    robust, strictly quality controlled, supported, and cross          *
-     *    platform software that has become a de facto standard.             *
-     *                                                                       *
-     *    Help yourself get started quickly and support the FreeRTOS         *
-     *    project by purchasing a FreeRTOS tutorial book, reference          *
-     *    manual, or both from: http://www.FreeRTOS.org/Documentation        *
-     *                                                                       *
-     *    Thank you!                                                         *
-     *                                                                       *
-    ***************************************************************************
-
-    This file is part of the FreeRTOS distribution.
-
-    FreeRTOS is free software; you can redistribute it and/or modify it under
-    the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
-
-    >>! NOTE: The modification to the GPL is included to allow you to distribute
-    >>! a combined work that includes FreeRTOS without being obliged to provide
-    >>! the source code for proprietary components outside of the FreeRTOS
-    >>! kernel.
-
-    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
-    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE.  Full license text is available from the following
-    link: http://www.freertos.org/a00114.html
-
-    1 tab == 4 spaces!
+    访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
 
     ***************************************************************************
      *                                                                       *
-     *    Having a problem?  Start by reading the FAQ "My application does   *
-     *    not run, what could be wrong?"                                     *
+     *    FreeRTOS提供完全免费但专业开发的、健壮的、严格质量控制的、         *
+     *    有技术支持的跨平台软件，已成为事实上的标准。                       *
      *                                                                       *
-     *    http://www.FreeRTOS.org/FAQHelp.html                               *
+     *    通过购买FreeRTOS教程书籍、参考手册或两者来帮助自己快速入门         *
+     *    并支持FreeRTOS项目：http://www.FreeRTOS.org/Documentation         *
+     *                                                                       *
+     *    谢谢您的支持！                                                     *
      *                                                                       *
     ***************************************************************************
 
-    http://www.FreeRTOS.org - Documentation, books, training, latest versions,
-    license and Real Time Engineers Ltd. contact details.
+    本文件是FreeRTOS发行版的一部分。
 
-    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
-    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
-    compatible FAT file system, and our tiny thread aware UDP/IP stack.
+    FreeRTOS是自由软件；您可以根据自由软件基金会发布的GNU通用公共许可证（版本2）
+    重新分发和/或修改它，并且带有FreeRTOS例外。
 
-    http://www.OpenRTOS.com - Real Time Engineers ltd license FreeRTOS to High
-    Integrity Systems to sell under the OpenRTOS brand.  Low cost OpenRTOS
-    licenses offer ticketed support, indemnification and middleware.
+    >>! 注意：对GPL的修改允许您分发包含FreeRTOS的组合作品，而无需提供
+    >>! FreeRTOS内核外专有组件的源代码。
 
-    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
-    engineered and independently SIL3 certified version for use in safety and
-    mission critical applications that require provable dependability.
+    FreeRTOS的发布希望它能有所帮助，但不提供任何担保；甚至没有对适销性或特定
+    用途适用性的暗示担保。完整的许可证文本可从以下链接获取：
+    http://www.freertos.org/a00114.html
 
-    1 tab == 4 spaces!
+    1个制表符 == 4个空格！
+
+    ***************************************************************************
+     *                                                                       *
+     *    遇到问题？请阅读常见问题解答"我的应用程序无法运行，可能是什么原因？" *
+     *                                                                       *
+     *    http://www.FreeRTOS.org/FAQHelp.html                              *
+     *                                                                       *
+    ***************************************************************************
+
+    http://www.FreeRTOS.org - 文档、书籍、培训、最新版本、许可和Real Time 
+    Engineers Ltd.联系方式。
+
+    http://www.FreeRTOS.org/plus - FreeRTOS生态系统产品精选，包括FreeRTOS+Trace
+    （不可或缺的生产力工具）、兼容DOS的FAT文件系统和我们的小型线程感知UDP/IP堆栈。
+
+    http://www.OpenRTOS.com - Real Time Engineers ltd将FreeRTOS授权给High
+    Integrity Systems，以OpenRTOS品牌销售。低成本OpenRTOS许可提供有票据支持、
+    赔偿和中间件。
+
+    http://www.SafeRTOS.com - High Integrity Systems还提供一个经过安全工程和
+    独立SIL3认证的版本，用于需要可证明可靠性的安全和任务关键型应用。
+
+    1个制表符 == 4个空格！
 */
 
 
@@ -68,77 +59,73 @@
 #define FREERTOS_CONFIG_H
 
 /*-----------------------------------------------------------
- * Application specific definitions.
+ * 应用程序特定定义
  *
- * These definitions should be adjusted for your particular hardware and
- * application requirements.
+ * 这些定义应根据您的特定硬件和应用需求进行调整。
  *
- * THESE PARAMETERS ARE DESCRIBED WITHIN THE 'CONFIGURATION' SECTION OF THE
- * FreeRTOS API DOCUMENTATION AVAILABLE ON THE FreeRTOS.org WEB SITE AND IN THE
- * FreeRTOS REFERENCE MANUAL.
+ * 这些参数在FreeRTOS.org网站上和FreeRTOS参考手册的'配置'部分
+ * 有详细说明。
  *----------------------------------------------------------*/
 
-#define configUSE_PREEMPTION					1
-#define configUSE_PORT_OPTIMISED_TASK_SELECTION	1
-#define configMAX_PRIORITIES					5
-#define configUSE_IDLE_HOOK						0
-#define configUSE_TICK_HOOK						0
-#define configTICK_RATE_HZ						( 1000 ) /* This is a simulated environment and therefore not real-time. */
-#define configMINIMAL_STACK_SIZE				( ( unsigned short ) 50 ) /* In this simulated case, the stack only has to hold one small structure as the real stack is part of the win32 thread. */
-#define configTOTAL_HEAP_SIZE					( ( size_t ) ( 20 * 1024 ) )
-#define configMAX_TASK_NAME_LEN					( 12 )
-#define configUSE_TRACE_FACILITY				0
-#define configUSE_16_BIT_TICKS					0
-#define configIDLE_SHOULD_YIELD					1
-#define configUSE_MUTEXES						1
-#define configCHECK_FOR_STACK_OVERFLOW			0 /* Not applicable when using the Win32 simulator. */
-#define configUSE_RECURSIVE_MUTEXES				1
-#define configQUEUE_REGISTRY_SIZE				10
-#define configUSE_MALLOC_FAILED_HOOK			1
-#define configUSE_APPLICATION_TASK_TAG			0
-#define configUSE_COUNTING_SEMAPHORES			1
-#define configUSE_ALTERNATIVE_API				0
-#define configUSE_QUEUE_SETS					1
+#define configUSE_PREEMPTION					1                   /* 启用抢占式调度器 */
+#define configUSE_PORT_OPTIMISED_TASK_SELECTION	1                   /* 使用优化的任务选择方法 */
+#define configMAX_PRIORITIES					5                   /* 最大任务优先级数（0-4） */
+#define configUSE_IDLE_HOOK						0                   /* 不使用空闲任务钩子函数 */
+#define configUSE_TICK_HOOK						0                   /* 不使用时钟中断钩子函数 */
+#define configTICK_RATE_HZ						( 1000 )           /* 系统时钟频率为1000Hz（在模拟环境中，非实时） */
+#define configMINIMAL_STACK_SIZE				( ( unsigned short ) 50 ) /* 最小栈大小；在此模拟环境中，实际栈是Win32线程的一部分 */
+#define configTOTAL_HEAP_SIZE					( ( size_t ) ( 20 * 1024 ) ) /* 总堆大小为20KB */
+#define configMAX_TASK_NAME_LEN					( 12 )             /* 任务名称最大长度 */
+#define configUSE_TRACE_FACILITY				0                   /* 不使用跟踪功能 */
+#define configUSE_16_BIT_TICKS					0                   /* 不使用16位时钟节拍计数器 */
+#define configIDLE_SHOULD_YIELD					1                   /* 空闲任务应该让步给其他同优先级任务 */
+#define configUSE_MUTEXES						1                   /* 启用互斥量 */
+#define configCHECK_FOR_STACK_OVERFLOW			0                   /* 不检查栈溢出（Win32模拟器不适用） */
+#define configUSE_RECURSIVE_MUTEXES				1                   /* 启用递归互斥量 */
+#define configQUEUE_REGISTRY_SIZE				10                  /* 队列注册表大小（用于调试） */
+#define configUSE_MALLOC_FAILED_HOOK			1                   /* 启用内存分配失败钩子 */
+#define configUSE_APPLICATION_TASK_TAG			0                   /* 不使用应用程序任务标签 */
+#define configUSE_COUNTING_SEMAPHORES			1                   /* 启用计数信号量 */
+#define configUSE_ALTERNATIVE_API				0                   /* 不使用替代API */
+#define configUSE_QUEUE_SETS					1                   /* 启用队列集 */
 
-/* Software timer related configuration options. */
-#define configUSE_TIMERS						0
-#define configTIMER_TASK_PRIORITY				( configMAX_PRIORITIES - 1 )
-#define configTIMER_QUEUE_LENGTH				20
-#define configTIMER_TASK_STACK_DEPTH			( configMINIMAL_STACK_SIZE * 2 )
+/* 软件定时器相关配置选项 */
+#define configUSE_TIMERS						0                   /* 不使用软件定时器 */
+#define configTIMER_TASK_PRIORITY				( configMAX_PRIORITIES - 1 ) /* 定时器服务任务优先级 */
+#define configTIMER_QUEUE_LENGTH				20                  /* 定时器命令队列长度 */
+#define configTIMER_TASK_STACK_DEPTH			( configMINIMAL_STACK_SIZE * 2 ) /* 定时器任务栈深度 */
 
-/* Run time stats gathering configuration options. */
-#define configGENERATE_RUN_TIME_STATS			0
+/* 运行时统计收集配置选项 */
+#define configGENERATE_RUN_TIME_STATS			0                   /* 不生成运行时统计信息 */
 
-/* Co-routine related configuration options. */
-#define configUSE_CO_ROUTINES 					0
-#define configMAX_CO_ROUTINE_PRIORITIES 		2
+/* 协程相关配置选项 */
+#define configUSE_CO_ROUTINES 					0                   /* 不使用协程 */
+#define configMAX_CO_ROUTINE_PRIORITIES 		2                   /* 协程最大优先级数 */
 
-/* This demo does not make use of one or more example stats formatting
-functions, which format the raw data provided by the uxTaskGetSystemState()
-function in to human readable ASCII form. */
-#define configUSE_STATS_FORMATTING_FUNCTIONS	0
+/* 这个演示不使用一个或多个示例统计格式化函数，这些函数将uxTaskGetSystemState()
+   函数提供的原始数据格式化为人类可读的ASCII形式。 */
+#define configUSE_STATS_FORMATTING_FUNCTIONS	0                   /* 不使用统计格式化函数 */
 
-/* Set the following definitions to 1 to include the API function, or zero
-to exclude the API function.  In most cases the linker will remove unused
-functions anyway. */
-#define INCLUDE_vTaskPrioritySet				1
-#define INCLUDE_uxTaskPriorityGet				1
-#define INCLUDE_vTaskDelete						1
-#define INCLUDE_vTaskSuspend					1
-#define INCLUDE_vTaskDelayUntil					1
-#define INCLUDE_vTaskDelay						1
-#define INCLUDE_uxTaskGetStackHighWaterMark		1
-#define INCLUDE_xTaskGetSchedulerState			1
-#define INCLUDE_xTimerGetTimerDaemonTaskHandle	1
-#define INCLUDE_xTaskGetIdleTaskHandle			1
-#define INCLUDE_pcTaskGetTaskName				1
-#define INCLUDE_eTaskGetState					1
-#define INCLUDE_xSemaphoreGetMutexHolder		1
-#define INCLUDE_xTimerPendFunctionCall			1
+/* 将以下定义设置为1以包含API函数，或设置为0以排除API函数。
+   在大多数情况下，链接器会自动删除未使用的函数。 */
+#define INCLUDE_vTaskPrioritySet				1                   /* 包含任务优先级设置函数 */
+#define INCLUDE_uxTaskPriorityGet				1                   /* 包含任务优先级获取函数 */
+#define INCLUDE_vTaskDelete						1                   /* 包含任务删除函数 */
+#define INCLUDE_vTaskSuspend					1                   /* 包含任务挂起函数 */
+#define INCLUDE_vTaskDelayUntil					1                   /* 包含精确延时函数 */
+#define INCLUDE_vTaskDelay						1                   /* 包含相对延时函数 */
+#define INCLUDE_uxTaskGetStackHighWaterMark		1                   /* 包含获取任务栈使用高水位标记函数 */
+#define INCLUDE_xTaskGetSchedulerState			1                   /* 包含获取调度器状态函数 */
+#define INCLUDE_xTimerGetTimerDaemonTaskHandle	1                   /* 包含获取定时器守护任务句柄函数 */
+#define INCLUDE_xTaskGetIdleTaskHandle			1                   /* 包含获取空闲任务句柄函数 */
+#define INCLUDE_pcTaskGetTaskName				1                   /* 包含获取任务名称函数 */
+#define INCLUDE_eTaskGetState					1                   /* 包含获取任务状态函数 */
+#define INCLUDE_xSemaphoreGetMutexHolder		1                   /* 包含获取互斥量持有者函数 */
+#define INCLUDE_xTimerPendFunctionCall			1                   /* 包含挂起函数调用函数 */
 
-/* It is a good idea to define configASSERT() while developing.  configASSERT()
-uses the same semantics as the standard C assert() macro. */
+/* 在开发过程中定义configASSERT()是个好主意。configASSERT()
+   使用与标准C assert()宏相同的语义。 */
 extern void vAssertCalled( uint32_t ulLine, const char * const pcFileName );
-#define configASSERT( x ) if( ( x ) == 0 ) vAssertCalled( __LINE__, __FILE__ )
+#define configASSERT( x ) if( ( x ) == 0 ) vAssertCalled( __LINE__, __FILE__ ) /* 断言宏定义，用于调试 */
 
 #endif /* FREERTOS_CONFIG_H */

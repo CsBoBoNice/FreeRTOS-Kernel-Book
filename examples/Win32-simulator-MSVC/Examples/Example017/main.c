@@ -1,82 +1,77 @@
 /*
- *  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ *  版权所有 Amazon.com Inc. 或其附属公司。保留所有权利。
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  本文件是 FreeRTOS 发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了 FreeRTOS 书籍《掌握 FreeRTOS 实时内核》中列出的示例的 Windows 端口实现。
+ *  本例演示了如何使用计数信号量从中断处理程序向任务发送数据。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS 头文件引入 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 
-/* Demo includes. */
+/* 演示所需的辅助函数 */
 #include "supporting_functions.h"
 
 
-/* The number of the simulated interrupt used in this example.  Numbers 0 to 2
- * are used by the FreeRTOS Windows port itself, so 3 is the first number available
- * to the application. */
+/* 本例中使用的模拟中断号。数字 0 到 2 由 FreeRTOS Windows 端口本身使用，
+ * 因此 3 是应用程序可用的第一个数字。 */
 #define mainINTERRUPT_NUMBER    3
 
-/* The tasks to be created. */
+/* 需要创建的任务 */
 static void vHandlerTask( void * pvParameters );
 static void vPeriodicTask( void * pvParameters );
 
-/* The service routine for the (simulated) interrupt.  This is the interrupt
- * that the task will be synchronized with. */
+/* (模拟)中断的服务例程。这是任务将与之同步的中断。
+ * 当中断发生时，此函数将被调用。 */
 static uint32_t ulExampleInterruptHandler( void );
 
 /*-----------------------------------------------------------*/
 
-/* Declare a variable of type SemaphoreHandle_t.  This is used to reference the
- * semaphore that is used to synchronize a task with an interrupt. */
+/* 声明一个 SemaphoreHandle_t 类型的变量。这用于引用将任务与中断同步的信号量。
+ * 计数信号量允许多个"给予"操作累积，然后可以被多个"获取"操作使用。 */
 SemaphoreHandle_t xCountingSemaphore;
 
 
 int main( void )
 {
-    /* Before a semaphore is used it must be explicitly created.  In this
-     * example a counting semaphore is created.  The semaphore is created to have a
-     * maximum count value of 10, and an initial count value of 0. */
+    /* 在使用信号量之前，必须先创建它。在此示例中，创建了一个计数信号量。
+     * 该信号量被创建为最大计数值为 10，初始计数值为 0。
+     * 初始计数为0意味着信号量初始状态为不可用。 */
     xCountingSemaphore = xSemaphoreCreateCounting( 10, 0 );
 
-    /* Check the semaphore was created successfully. */
+    /* 检查信号量是否成功创建 */
     if( xCountingSemaphore != NULL )
     {
-        /* Create the 'handler' task, which is the task to which interrupt
-         * processing is deferred, and so is the task that will be synchronized
-         * with the interrupt.  The handler task is created with a high priority to
-         * ensure it runs immediately after the interrupt exits.  In this case a
-         * priority of 3 is chosen. */
+        /* 创建"处理程序"任务，这是中断处理被推迟到的任务，因此是与中断同步的任务。
+         * 处理程序任务以高优先级创建，以确保它在中断退出后立即运行。
+         * 在本例中，选择了优先级 3。 */
         xTaskCreate( vHandlerTask, "Handler", 1000, NULL, 3, NULL );
 
-        /* Create the task that will periodically generate a software interrupt.
-         * This is created with a priority below the handler task to ensure it will
-         * get preempted each time the handler task exits the Blocked state. */
+        /* 创建将定期生成软件中断的任务。
+         * 这个任务的优先级低于处理程序任务，以确保每次处理程序任务退出阻塞状态时，
+         * 该任务都会被抢占。 */
         xTaskCreate( vPeriodicTask, "Periodic", 1000, NULL, 1, NULL );
 
-        /* Install the handler for the software interrupt.  The syntax necessary
-         * to do this is dependent on the FreeRTOS port being used.  The syntax
-         * shown here can only be used with the FreeRTOS Windows port, where such
-         * interrupts are only simulated. */
+        /* 为软件中断安装处理程序。执行此操作所需的语法取决于所使用的 FreeRTOS 端口。
+         * 此处显示的语法只能与 FreeRTOS Windows 端口一起使用，其中此类中断仅被模拟。 */
         vPortSetInterruptHandler( mainINTERRUPT_NUMBER, ulExampleInterruptHandler );
 
-        /* Start the scheduler so the created tasks start executing. */
+        /* 启动调度程序，使创建的任务开始执行。
+         * 调度器接管控制后，任务将开始执行。 */
         vTaskStartScheduler();
     }
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 下面的行应该永远不会到达，因为 vTaskStartScheduler() 只有在没有足够的
+     * FreeRTOS 堆内存可用于创建空闲和（如果配置）定时器任务的情况下才会返回。
+     * 堆管理和捕获堆耗尽的技术在书中有描述。 */
     for( ; ; )
     {
     }
@@ -87,46 +82,43 @@ int main( void )
 
 static void vHandlerTask( void * pvParameters )
 {
-    /* As per most tasks, this task is implemented within an infinite loop. */
+    /* 与大多数任务一样，此任务在无限循环中实现。 */
     for( ; ; )
     {
-        /* Use the semaphore to wait for the event.  The semaphore was created
-         * before the scheduler was started so before this task ran for the first
-         * time.  The task blocks indefinitely meaning this function call will only
-         * return once the semaphore has been successfully obtained - so there is
-         * no need to check the returned value. */
+        /* 使用信号量等待事件。信号量是在调度程序启动之前创建的，因此是在此任务首次运行之前创建的。
+         * 任务无限期阻塞，这意味着此函数调用仅在成功获得信号量后才会返回，因此无需检查返回值。
+         * portMAX_DELAY参数表示任务将永远等待，直到信号量可用。 */
         xSemaphoreTake( xCountingSemaphore, portMAX_DELAY );
 
-        /* To get here the event must have occurred.  Process the event (in this
-         * case just print out a message). */
-        vPrintString( "Handler task - Processing event.\r\n" );
+        /* 能到达这里说明事件必须已经发生。处理事件（在本例中只是打印一条消息）。
+         * 这个消息表明处理程序任务已从信号量接收到通知并正在处理事件。 */
+        vPrintString( "处理程序任务 - 正在处理事件。\r\n" );
     }
 }
 /*-----------------------------------------------------------*/
 
 static void vPeriodicTask( void * pvParameters )
 {
+    /* 定义一个延迟常量，等于500毫秒的滴答数
+     * pdMS_TO_TICKS宏将毫秒转换为系统滴答数 */
     const TickType_t xDelay500ms = pdMS_TO_TICKS( 500UL );
 
-    /* As per most tasks, this task is implemented within an infinite loop. */
+    /* 与大多数任务一样，此任务在无限循环中实现。 */
     for( ; ; )
     {
-        /* This task is just used to 'simulate' an interrupt.  This is done by
-         * periodically generating a simulated software interrupt.  Block until it
-         * is time to generate the software interrupt again. */
+        /* 此任务仅用于"模拟"中断。这是通过定期生成模拟软件中断来完成的。
+         * 阻塞直到再次生成软件中断的时间。
+         * vTaskDelay使任务进入阻塞状态指定的时间。 */
         vTaskDelay( xDelay500ms );
 
-        /* Generate the interrupt, printing a message both before and after
-         * the interrupt has been generated so the sequence of execution is evident
-         * from the output.
+        /* 生成中断，在生成中断前后打印消息，以便从输出中清楚地看出执行顺序。
          *
-         * The syntax used to generate a software interrupt is dependent on the
-         * FreeRTOS port being used.  The syntax used below can only be used with
-         * the FreeRTOS Windows port, in which such interrupts are only
-         * simulated. */
-        vPrintString( "Periodic task - About to generate an interrupt.\r\n" );
+         * 用于生成软件中断的语法取决于所使用的 FreeRTOS 端口。
+         * 下面使用的语法只能与 FreeRTOS Windows 端口一起使用，在该端口中，
+         * 此类中断只是被模拟。 */
+        vPrintString( "周期性任务 - 即将生成中断。\r\n" );
         vPortGenerateSimulatedInterrupt( mainINTERRUPT_NUMBER );
-        vPrintString( "Periodic task - Interrupt generated.\r\n\r\n\r\n" );
+        vPrintString( "周期性任务 - 中断已生成。\r\n\r\n\r\n" );
     }
 }
 /*-----------------------------------------------------------*/
@@ -135,27 +127,28 @@ static uint32_t ulExampleInterruptHandler( void )
 {
     BaseType_t xHigherPriorityTaskWoken;
 
-    /* The xHigherPriorityTaskWoken parameter must be initialized to pdFALSE as
-     * it will get set to pdTRUE inside the interrupt safe API function if a
-     * context switch is required. */
+    /* xHigherPriorityTaskWoken 参数必须初始化为 pdFALSE，因为如果在中断安全 API 函数内
+     * 需要进行上下文切换，它将被设置为 pdTRUE。
+     * 该参数用于指示是否有更高优先级的任务被唤醒。 */
     xHigherPriorityTaskWoken = pdFALSE;
 
-    /* 'Give' the semaphore multiple times.  The first will unblock the deferred
-     * interrupt handling task, the following 'gives' are to demonstrate that the
-     * semaphore latches the events to allow the handler task to process them in
-     * turn without events getting lost.  This simulates multiple interrupts being
-     * processed by the processor, even though in this case the events are
-     * simulated within a single interrupt occurrence.*/
+    /* 多次"给予"信号量。第一次将解除阻塞延迟中断处理任务，
+     * 后续的"给予"用于演示信号量如何锁定事件，以允许处理程序任务按顺序处理它们，
+     * 而不会丢失事件。这模拟了处理器处理多个中断，尽管在这种情况下，
+     * 事件是在单个中断发生内模拟的。
+     * 
+     * 计数信号量的这种特性非常适合实现事件计数和管理有限资源池。 */
     xSemaphoreGiveFromISR( xCountingSemaphore, &xHigherPriorityTaskWoken );
     xSemaphoreGiveFromISR( xCountingSemaphore, &xHigherPriorityTaskWoken );
     xSemaphoreGiveFromISR( xCountingSemaphore, &xHigherPriorityTaskWoken );
 
-    /* Pass the xHigherPriorityTaskWoken value into portYIELD_FROM_ISR().  If
-     * xHigherPriorityTaskWoken was set to pdTRUE inside xSemaphoreGiveFromISR()
-     * then calling portYIELD_FROM_ISR() will request a context switch.  If
-     * xHigherPriorityTaskWoken is still pdFALSE then calling
-     * portYIELD_FROM_ISR() will have no effect.  The implementation of
-     * portYIELD_FROM_ISR() used by the Windows port includes a return statement,
-     * which is why this function does not explicitly return a value. */
+    /* 将 xHigherPriorityTaskWoken 值传递给 portYIELD_FROM_ISR()。
+     * 如果在 xSemaphoreGiveFromISR() 内部将 xHigherPriorityTaskWoken 设置为 pdTRUE，
+     * 则调用 portYIELD_FROM_ISR() 将请求上下文切换。
+     * 如果 xHigherPriorityTaskWoken 仍为 pdFALSE，则调用 portYIELD_FROM_ISR() 将没有效果。
+     * Windows 端口使用的 portYIELD_FROM_ISR() 实现包含一个返回语句，
+     * 这就是为什么此函数不显式返回值的原因。
+     * 
+     * 通过这种机制，中断可以立即切换到更高优先级的任务，提高系统响应性。 */
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }

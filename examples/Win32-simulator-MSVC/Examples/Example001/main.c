@@ -3,26 +3,25 @@
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  本文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了《掌握FreeRTOS实时内核》一书中列出的示例的Windows端口实现。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org 包含文件。 */
 #include "FreeRTOS.h"
 #include "task.h"
 
-/* Demo includes. */
+/* 演示包含文件。 */
 #include "supporting_functions.h"
 
-/* Used as a loop counter to create a very crude delay. */
+/* 用作循环计数器来创建一个非常粗略的延迟。 */
 #define mainDELAY_LOOP_COUNT    ( 0xffffff )
 
-/* The task functions. */
+/* 任务函数。 */
 void vTask1( void * pvParameters );
 void vTask2( void * pvParameters );
 
@@ -30,24 +29,23 @@ void vTask2( void * pvParameters );
 
 int main( void )
 {
-    /* Create one of the two tasks. */
-    xTaskCreate( vTask1,   /* Pointer to the function that implements the task. */
-                 "Task 1", /* Text name for the task.  This is to facilitate debugging only. */
-                 1000,     /* Stack depth - most small microcontrollers will use much less stack than this. */
-                 NULL,     /* We are not using the task parameter. */
-                 1,        /* This task will run at priority 1. */
-                 NULL );   /* We are not using the task handle. */
+    /* 创建两个任务中的第一个。 */
+    xTaskCreate( vTask1,   /* 指向实现任务的函数的指针。 */
+                 "Task 1", /* 任务的文本名称。这是为了便于调试。 */
+                 1000,     /* 堆栈深度 - 大多数小型微控制器使用的堆栈比这少得多。 */
+                 NULL,     /* 我们没有使用任务参数。 */
+                 1,        /* 此任务将以优先级1运行。 */
+                 NULL );   /* 我们没有使用任务句柄。 */
 
-    /* Create the other task in exactly the same way. */
+    /* 以完全相同的方式创建另一个任务。 */
     xTaskCreate( vTask2, "Task 2", 1000, NULL, 1, NULL );
 
-    /* Start the scheduler to start the tasks executing. */
+    /* 启动调度程序以开始执行任务。 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 以下行永远不应该被执行，因为vTaskStartScheduler()
+    *  只有在没有足够的FreeRTOS堆内存可用于创建空闲和（如果配置了）
+    *  定时器任务时才会返回。堆管理和捕获堆耗尽的技术在书中有描述。 */
     for( ; ; )
     {
     }
@@ -61,18 +59,18 @@ void vTask1( void * pvParameters )
     const char * pcTaskName = "Task 1 is running\r\n";
     volatile uint32_t ul;
 
-    /* As per most tasks, this task is implemented in an infinite loop. */
+    /* 与大多数任务一样，此任务在无限循环中实现。 */
     for( ; ; )
     {
-        /* Print out the name of this task. */
+        /* 打印此任务的名称。 */
         vPrintString( pcTaskName );
 
-        /* Delay for a period. */
+        /* 延迟一段时间。 */
         for( ul = 0; ul < mainDELAY_LOOP_COUNT; ul++ )
         {
-            /* This loop is just a very crude delay implementation.  There is
-             * nothing to do in here.  Later exercises will replace this crude
-             * loop with a proper delay/sleep function. */
+            /* 这个循环只是一个非常粗略的延迟实现。
+             * 这里没有什么可做的。后续练习将用适当的
+             * 延迟/睡眠函数替换这个粗略的循环。 */
         }
     }
 }
@@ -83,18 +81,18 @@ void vTask2( void * pvParameters )
     const char * pcTaskName = "Task 2 is running\r\n";
     volatile uint32_t ul;
 
-    /* As per most tasks, this task is implemented in an infinite loop. */
+    /* 与大多数任务一样，此任务在无限循环中实现。 */
     for( ; ; )
     {
-        /* Print out the name of this task. */
+        /* 打印此任务的名称。 */
         vPrintString( pcTaskName );
 
-        /* Delay for a period. */
+        /* 延迟一段时间。 */
         for( ul = 0; ul < mainDELAY_LOOP_COUNT; ul++ )
         {
-            /* This loop is just a very crude delay implementation.  There is
-             * nothing to do in here.  Later exercises will replace this crude
-             * loop with a proper delay/sleep function. */
+            /* 这个循环只是一个非常粗略的延迟实现。
+             * 这里没有什么可做的。后续练习将用适当的
+             * 延迟/睡眠函数替换这个粗略的循环。 */
         }
     }
 }

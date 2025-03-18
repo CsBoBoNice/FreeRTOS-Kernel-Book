@@ -3,52 +3,49 @@
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  请访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  此文件是 FreeRTOS 发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了《掌握 FreeRTOS 实时内核》这本书中所列举的示例在 Windows 端口上的实现。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org 头文件包含 */
 #include "FreeRTOS.h"
 #include "task.h"
 
-/* Demo includes. */
+/* 演示相关头文件包含 */
 #include "supporting_functions.h"
 
-/* The task function. */
+/* 任务函数声明 */
 void vTaskFunction( void * pvParameters );
 
-/* A variable that is incremented by the idle task hook function. */
+/* 这个变量会被空闲任务钩子函数递增 */
 static uint32_t ulIdleCycleCount = 0UL;
 
-/* Define the strings that will be passed in as the task parameters.  These are
- * defined const and off the stack to ensure they remain valid when the tasks are
- * executing. */
-const char * pcTextForTask1 = "Task 1 is running\r\n";
-const char * pcTextForTask2 = "Task 2 is running\r\n";
+/* 定义将作为任务参数传递的字符串。
+ * 这些被定义为常量且不在栈上，以确保它们在任务执行期间保持有效。 */
+const char * pcTextForTask1 = "任务 1 正在运行\r\n";
+const char * pcTextForTask2 = "任务 2 正在运行\r\n";
 
 /*-----------------------------------------------------------*/
 
 int main( void )
 {
-    /* Create the first task at priority 1... */
+    /* 创建第一个任务，优先级为 1... */
     xTaskCreate( vTaskFunction, "Task 1", 1000, ( void * ) pcTextForTask1, 1, NULL );
 
-    /* ... and the second task at priority 2.  The priority is the second to
-     * last parameter. */
+    /* ...然后创建第二个任务，优先级为 2。
+     * 优先级是倒数第二个参数。 */
     xTaskCreate( vTaskFunction, "Task 2", 1000, ( void * ) pcTextForTask2, 2, NULL );
 
-    /* Start the scheduler to start the tasks executing. */
+    /* 启动调度器，开始执行任务。 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 以下代码永远不应该被执行，因为 vTaskStartScheduler() 
+     * 只有在 FreeRTOS 堆内存不足以创建空闲任务和定时器任务(如果配置了)时才会返回。
+     * 堆管理和捕获堆耗尽的技术在书中有详细描述。 */
     for( ; ; )
     {
     }
@@ -62,29 +59,27 @@ void vTaskFunction( void * pvParameters )
     char * pcTaskName;
     const TickType_t xDelay250ms = pdMS_TO_TICKS( 250UL );
 
-    /* The string to print out is passed in via the parameter.  Cast this to a
-     * character pointer. */
+    /* 通过参数传入要打印的字符串。将其转换为字符指针。 */
     pcTaskName = ( char * ) pvParameters;
 
-    /* As per most tasks, this task is implemented in an infinite loop. */
+    /* 和大多数任务一样，这个任务在一个无限循环中实现。 */
     for( ; ; )
     {
-        /* Print out the name of this task AND the number of times ulIdleCycleCount
-         * has been incremented. */
+        /* 打印任务名称和 ulIdleCycleCount 被递增的次数。 */
         vPrintStringAndNumber( pcTaskName, ulIdleCycleCount );
 
-        /* Delay for a period.  This time we use a call to vTaskDelay() which
-         * puts the task into the Blocked state until the delay period has expired.
-         * The delay period is specified in 'ticks'. */
+        /* 延时一段时间。这里我们使用 vTaskDelay() 函数，
+         * 它会将任务置于阻塞状态，直到延时期限到期。
+         * 延时期限以"节拍"为单位指定。 */
         vTaskDelay( xDelay250ms );
     }
 }
 /*-----------------------------------------------------------*/
 
-/* Idle hook functions MUST be called vApplicationIdleHook(), take no parameters,
- * and return void. */
+/* 空闲钩子函数必须命名为 vApplicationIdleHook()，
+ * 不接受参数，且返回类型为 void。 */
 void vApplicationIdleHook( void )
 {
-    /* This hook function does nothing but increment a counter. */
+    /* 这个钩子函数只是递增一个计数器。 */
     ulIdleCycleCount++;
 }

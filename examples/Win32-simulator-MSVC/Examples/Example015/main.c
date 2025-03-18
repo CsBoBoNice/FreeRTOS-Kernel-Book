@@ -1,88 +1,92 @@
 /*
- *  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ *  版权所有 Amazon.com Inc. 或其附属公司。保留所有权利。
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  本文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  此文件包含FreeRTOS书籍《掌握FreeRTOS实时内核》中列出的示例的Windows端口实现。
  *
  */
 
-/* Standard includes. */
+/* 标准包含文件 */
 #include <conio.h>
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
 
-/* Demo includes. */
+/* 演示包含文件 */
 #include "supporting_functions.h"
 
-/* The periods assigned to the one-shot timer. */
-#define mainBACKLIGHT_TIMER_PERIOD    ( pdMS_TO_TICKS( 5000UL ) )
+/* 分配给单次触发定时器的周期 */
+#define mainBACKLIGHT_TIMER_PERIOD    ( pdMS_TO_TICKS( 5000UL ) ) /* 将5000毫秒转换为系统节拍数 */
 
 /*-----------------------------------------------------------*/
 
 /*
- * The callback function used by the timer.
+ * 定时器使用的回调函数
+ * 此函数在定时器到期时被调用，用于关闭背光
  */
 static void prvBacklightTimerCallback( TimerHandle_t xTimer );
 
 /*
- * A real application, running on a real target, would probably read button
- * pushes in an interrupt.  That allows the application to be event driven, and
- * prevents CPU time being wasted by polling for key presses when no keys have
- * been pressed.  It is not practical to use real interrupts when using the
- * FreeRTOS Windows port, so the vKeyHitTask() task is created to provide the
- * key reading functionality by simply polling the keyboard.
+ * 在真实应用程序中，运行在真实目标上时，可能会在中断中读取按钮按下事件。
+ * 这允许应用程序由事件驱动，并防止在没有按键按下时轮询按键而浪费CPU时间。
+ * 在使用FreeRTOS Windows端口时，使用真实中断是不切实际的，
+ * 因此创建vKeyHitTask()任务来提供按键读取功能，通过简单地轮询键盘实现。
  */
 static void vKeyHitTask( void * pvParameters );
 
 /*-----------------------------------------------------------*/
 
-/* This example does not have a real backlight to turn on and off, so the
- * following variable is used to just hold the state of the backlight. */
-static BaseType_t xSimulatedBacklightOn = pdFALSE;
+/* 这个示例没有真实的背光可以打开和关闭，
+ * 所以使用以下变量来保存背光的状态。 */
+static BaseType_t xSimulatedBacklightOn = pdFALSE;  /* 初始化为关闭状态 */
 
-/* The software timer used to turn the backlight off. */
+/* 用于关闭背光的软件定时器 */
 static TimerHandle_t xBacklightTimer = NULL;
 
 /*-----------------------------------------------------------*/
 
 int main( void )
 {
-    /* The backlight is off at the start. */
+    /* 程序开始时背光处于关闭状态 */
     xSimulatedBacklightOn = pdFALSE;
 
-    /* Create the one shot timer, storing the handle to the created timer in
-     * xOneShotTimer. */
-    xBacklightTimer = xTimerCreate( "Backlight",                 /* Text name for the timer - not used by FreeRTOS. */
-                                    mainBACKLIGHT_TIMER_PERIOD,  /* The timer's period in ticks. */
-                                    pdFALSE,                     /* Set uxAutoRealod to pdFALSE to create a one-shot timer. */
-                                    0,                           /* The timer ID is not used in this example. */
-                                    prvBacklightTimerCallback ); /* The callback function to be used by the timer being created. */
+    /* 创建单次触发定时器，并将创建的定时器句柄存储在xBacklightTimer中 */
+    xBacklightTimer = xTimerCreate( 
+        "Backlight",                  /* 定时器的文本名称 - 不被FreeRTOS使用 */
+        mainBACKLIGHT_TIMER_PERIOD,   /* 定时器的周期（以节拍为单位） */
+        pdFALSE,                      /* 设置uxAutoReload为pdFALSE创建单次触发定时器 */
+        0,                            /* 定时器ID在此示例中未使用 */
+        prvBacklightTimerCallback     /* 由创建的定时器使用的回调函数 */
+    ); 
 
-    /* A real application, running on a real target, would probably read button
-     * pushes in an interrupt.  That allows the application to be event driven, and
-     * prevents CPU time being wasted by polling for key presses when no keys have
-     * been pressed.  It is not practical to use real interrupts when using the
-     * FreeRTOS Windows port, so the vKeyHitTask() task is created to instead
-     * provide the	key reading functionality by simply polling the keyboard. */
-    xTaskCreate( vKeyHitTask, "Key poll", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL );
+    /* 在真实应用程序中，运行在真实目标上时，可能会在中断中读取按钮按下事件。
+     * 这允许应用程序由事件驱动，并防止在没有按键按下时轮询按键而浪费CPU时间。
+     * 在使用FreeRTOS Windows端口时，使用真实中断是不切实际的，
+     * 因此创建vKeyHitTask()任务来提供按键读取功能，通过简单地轮询键盘实现。 */
+    xTaskCreate( 
+        vKeyHitTask,              /* 任务函数 */
+        "Key poll",               /* 任务名称 */
+        configMINIMAL_STACK_SIZE, /* 任务栈大小 */
+        NULL,                     /* 无任务参数 */
+        tskIDLE_PRIORITY,         /* 任务优先级与空闲任务相同 */
+        NULL                      /* 不需要保存任务句柄 */
+    );
 
-    /* Start the timer. */
+    /* 启动定时器 */
     xTimerStart( xBacklightTimer, 0 );
 
-    /* Start the scheduler. */
+    /* 启动调度器 */
     vTaskStartScheduler();
 
-    /* As in previous examples, vTaskStartScheduler() shoudl not return so the
-     * following lines should not be reached. */
+    /* 与之前的示例一样，vTaskStartScheduler()不应该返回，
+     * 因此不应到达以下几行代码。 */
     for( ; ; )
     {
     }
@@ -93,71 +97,66 @@ int main( void )
 
 static void prvBacklightTimerCallback( TimerHandle_t xTimer )
 {
-    TickType_t xTimeNow = xTaskGetTickCount();
+    TickType_t xTimeNow = xTaskGetTickCount();  /* 获取当前系统节拍计数 */
 
-    /* The backlight timer expired, turn the backlight off. */
+    /* 背光定时器已到期，关闭背光 */
     xSimulatedBacklightOn = pdFALSE;
 
-    /* Print the time at which the backlight was turned off. */
-    vPrintStringAndNumber( "Timer expired, turning backlight OFF at time\t", xTimeNow );
+    /* 打印关闭背光的时间 */
+    vPrintStringAndNumber( "定时器到期，在时间点关闭背光\t", xTimeNow );
 }
 /*-----------------------------------------------------------*/
 
 static void vKeyHitTask( void * pvParameters )
 {
-    const TickType_t xShortDelay = pdMS_TO_TICKS( 50 );
-    extern BaseType_t xKeyPressesStopApplication;
+    const TickType_t xShortDelay = pdMS_TO_TICKS( 50 );  /* 短延迟50毫秒 */
+    extern BaseType_t xKeyPressesStopApplication;        /* 外部变量声明 */
     TickType_t xTimeNow;
 
-    /* This example uses key presses, so prevent key presses being used to end
-     * the application. */
+    /* 此示例使用按键操作，因此防止按键操作用于结束应用程序 */
     xKeyPressesStopApplication = pdFALSE;
 
-    vPrintString( "Press a key to turn the backlight on.\r\n" );
+    vPrintString( "按任意键打开背光。\r\n" );
 
-    /* A real application, running on a real target, would probably read button
-     * pushes in an interrupt.  That allows the application to be event driven, and
-     * prevents CPU time being wasted by polling for key presses when no keys have
-     * been pressed.  It is not practical to use real interrupts when using the
-     * FreeRTOS Windows port, so this task is created to instead provide the key
-     * reading functionality by simply polling the keyboard. */
+    /* 在真实应用程序中，运行在真实目标上时，可能会在中断中读取按钮按下事件。
+     * 这允许应用程序由事件驱动，并防止在没有按键按下时轮询按键而浪费CPU时间。
+     * 在使用FreeRTOS Windows端口时，使用真实中断是不切实际的，
+     * 因此创建此任务来提供按键读取功能，通过简单地轮询键盘实现。 */
     for( ; ; )
     {
-        /* Has a key been pressed? */
+        /* 检查是否有按键被按下 */
         if( _kbhit() != 0 )
         {
-            /* Record the time at which the key press was noted. */
+            /* 记录检测到按键按下的时间 */
             xTimeNow = xTaskGetTickCount();
 
-            /* A key has been pressed. */
+            /* 按键已被按下 */
             if( xSimulatedBacklightOn == pdFALSE )
             {
-                /* The backlight was off so turn it on and print the time at
-                 * which it was turned on. */
+                /* 背光之前是关闭的，所以打开它并打印背光打开的时间 */
                 xSimulatedBacklightOn = pdTRUE;
-                vPrintStringAndNumber( "Key pressed, turning backlight ON at time\t", xTimeNow );
+                vPrintStringAndNumber( "按键按下，在时间点打开背光\t", xTimeNow );
             }
             else
             {
-                /* The backlight was already on so print a message to say the
-                 * backlight is about to be reset and the time at which it was
-                 * reset. */
-                vPrintStringAndNumber( "Key pressed, resetting software timer at time\t", xTimeNow );
+                /* 背光已经打开，所以打印一条消息表示软件定时器将被重置，
+                 * 并打印重置的时间 */
+                vPrintStringAndNumber( "按键按下，在时间点重置软件定时器\t", xTimeNow );
             }
 
-            /* Reset the software timer.  If the backlight was previously off
-             * this call will start the timer.  If the backlight was previously on
-             * this call will restart the timer.  A real application will probably
-             * read key presses in an interrupt.  If this function was an interrupt
-             * service routine then xTimerResetFromISR() must be used instead of
-             * xTimerReset(). */
+            /* 重置软件定时器。如果背光之前是关闭的，
+             * 这个调用将启动定时器。如果背光之前是打开的，
+             * 这个调用将重新启动定时器。
+             * 真实应用程序可能会在中断中读取按键按下事件。
+             * 如果这个函数是中断服务例程，则必须使用xTimerResetFromISR()
+             * 而不是xTimerReset()。 */
             xTimerReset( xBacklightTimer, xShortDelay );
 
-            /* Read and discard the key that was pressed. */
+            /* 读取并丢弃被按下的键 */
             ( void ) _getch();
         }
 
-        /* Don't poll too quickly. */
+        /* 不要太快地轮询 */
         vTaskDelay( xShortDelay );
     }
 }

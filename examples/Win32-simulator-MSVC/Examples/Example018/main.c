@@ -1,70 +1,67 @@
 /*
- *  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ *  版权所有 Amazon.com Inc. 或其附属公司。保留所有权利。
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  本文件是 FreeRTOS 发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  本文件包含《掌握 FreeRTOS 实时内核》一书中列出的示例的 Windows 端口实现。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org 包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
 
-/* Demo includes. */
+/* 演示所需的包含文件 */
 #include "supporting_functions.h"
 
 
-/* The number of the simulated interrupt used in this example.  Numbers 0 to 2
- * are used by the FreeRTOS Windows port itself, so 3 is the first number available
- * to the application. */
+/* 本示例中使用的模拟中断的编号。编号 0 到 2 
+ * 由 FreeRTOS Windows 端口本身使用，因此 3 是应用程序可用的第一个编号。 */
 #define mainINTERRUPT_NUMBER    3
 
-/* The task to be created. */
-static void vPeriodicTask( void * pvParameters );
+/* 要创建的任务 */
+static void vPeriodicTask(void *pvParameters);
 
-/* The function that performs the deferred interrupt processing.  This function
- * is executed in the context of the daemon task. */
-static void vDeferredHandlingFunction( void * pvParameter1,
-                                       uint32_t ulParameter2 );
+/* 执行延迟中断处理的函数。该函数
+ * 在守护任务的上下文中执行。 */
+static void vDeferredHandlingFunction(void *pvParameter1,
+                                      uint32_t ulParameter2);
 
-/* The service routine for the (simulated) interrupt.  This is the interrupt
- * that the task will be synchronized with. */
-static uint32_t ulExampleInterruptHandler( void );
+/* 模拟中断的服务例程。这是任务将与之
+ * 同步的中断。 */
+static uint32_t ulExampleInterruptHandler(void);
 
 /*-----------------------------------------------------------*/
 
-int main( void )
+int main(void)
 {
-/* The task that generates the software interrupt is created at a priority
- * below the priority of the daemon task.  The priority of the daemon task is
- * set by the configTIMER_TASK_PRIORITY compile time configuration constant in
- * FreeRTOSConfig.h. */
+/* 生成软件中断的任务创建时使用的优先级
+ * 低于守护任务的优先级。守护任务的优先级
+ * 由 FreeRTOSConfig.h 中的 configTIMER_TASK_PRIORITY 编译时配置常量设置。 */
     const UBaseType_t ulPeriodicTaskPriority = configTIMER_TASK_PRIORITY - 1;
 
-    /* Create the task that will periodically generate a software interrupt. */
-    xTaskCreate( vPeriodicTask, "Periodic", 1000, NULL, ulPeriodicTaskPriority, NULL );
+    /* 创建将周期性生成软件中断的任务 */
+    xTaskCreate(vPeriodicTask, "Periodic", 1000, NULL, ulPeriodicTaskPriority, NULL);
 
-    /* Install the handler for the software interrupt.  The syntax necessary
-     * to do this is dependent on the FreeRTOS port being used.  The syntax
-     * shown here can only be used with the FreeRTOS Windows port, where such
-     * interrupts are only simulated. */
-    vPortSetInterruptHandler( mainINTERRUPT_NUMBER, ulExampleInterruptHandler );
+    /* 为软件中断安装处理程序。执行此操作所需的语法
+     * 取决于所使用的 FreeRTOS 端口。这里显示的语法
+     * 只能与 FreeRTOS Windows 端口一起使用，因为在 Windows 端口中
+     * 这种中断只是模拟的。 */
+    vPortSetInterruptHandler(mainINTERRUPT_NUMBER, ulExampleInterruptHandler);
 
-    /* Start the scheduler so the created task starts executing. */
+    /* 启动调度程序，使创建的任务开始执行 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
-    for( ; ; )
+    /* 下面的代码永远不应该被执行，因为 vTaskStartScheduler()
+    * 只有在 FreeRTOS 堆内存不足以创建空闲任务和
+    * 定时器任务（如果配置了的话）时才会返回。堆管理和
+    * 捕获堆耗尽的技术在书中有详细描述。 */
+    for(;;)
     {
     }
 
@@ -72,70 +69,67 @@ int main( void )
 }
 /*-----------------------------------------------------------*/
 
-static void vPeriodicTask( void * pvParameters )
+static void vPeriodicTask(void *pvParameters)
 {
-    const TickType_t xDelay500ms = pdMS_TO_TICKS( 500UL );
+    const TickType_t xDelay500ms = pdMS_TO_TICKS(500UL); /* 将500毫秒转换为系统节拍数 */
 
-    /* As per most tasks, this task is implemented within an infinite loop. */
-    for( ; ; )
+    /* 与大多数任务一样，此任务在无限循环内实现 */
+    for(;;)
     {
-        /* This task is just used to 'simulate' an interrupt.  This is done by
-         * periodically generating a simulated software interrupt.  Block until it
-         * is time to generate the software interrupt again. */
-        vTaskDelay( xDelay500ms );
+        /* 此任务仅用于"模拟"中断。这是通过
+         * 周期性生成模拟软件中断来实现的。阻塞等待直到
+         * 到再次生成软件中断的时间。 */
+        vTaskDelay(xDelay500ms);
 
-        /* Generate the interrupt, printing a message both before and after
-         * the interrupt has been generated so the sequence of execution is evident
-         * from the output.
+        /* 生成中断，在生成中断前后打印消息，
+         * 以便从输出中可以看出执行顺序。
          *
-         * The syntax used to generate a software interrupt is dependent on the
-         * FreeRTOS port being used.  The syntax used below can only be used with
-         * the FreeRTOS Windows port, in which such interrupts are only
-         * simulated. */
-        vPrintString( "Periodic task - About to generate an interrupt.\r\n" );
-        vPortGenerateSimulatedInterrupt( mainINTERRUPT_NUMBER );
-        vPrintString( "Periodic task - Interrupt generated.\r\n\r\n\r\n" );
+         * 用于生成软件中断的语法取决于
+         * 所使用的 FreeRTOS 端口。下面使用的语法只能用于
+         * FreeRTOS Windows 端口，在该端口中这些中断只是
+         * 模拟的。 */
+        vPrintString("周期性任务 - 即将生成中断。\r\n");
+        vPortGenerateSimulatedInterrupt(mainINTERRUPT_NUMBER);
+        vPrintString("周期性任务 - 中断已生成。\r\n\r\n\r\n");
     }
 }
 /*-----------------------------------------------------------*/
 
-static uint32_t ulExampleInterruptHandler( void )
+static uint32_t ulExampleInterruptHandler(void)
 {
     static uint32_t ulParameterValue = 0;
     BaseType_t xHigherPriorityTaskWoken;
 
-    /* The xHigherPriorityTaskWoken parameter must be initialized to pdFALSE as
-     * it will get set to pdTRUE inside the interrupt safe API function if a
-     * context switch is required. */
+    /* xHigherPriorityTaskWoken 参数必须初始化为 pdFALSE，
+     * 因为如果在中断安全的 API 函数内需要进行上下文切换，
+     * 它将被设置为 pdTRUE。 */
     xHigherPriorityTaskWoken = pdFALSE;
 
-    /* Send a pointer to the interrupt's deferred handling function to the
-     * daemon task.  The deferred handling function's pvParameter1 parameter is not
-     * used so just set to NULL.  The deferred handling function's ulParameter2
-     * parameter is used to pass a number that is incremented by one each time this
-     * interrupt occurs. */
-    xTimerPendFunctionCallFromISR( vDeferredHandlingFunction, NULL, ulParameterValue, &xHigherPriorityTaskWoken );
+    /* 将指向中断延迟处理函数的指针发送到
+     * 守护任务。延迟处理函数的 pvParameter1 参数未使用，
+     * 因此只需设置为 NULL。延迟处理函数的 ulParameter2
+     * 参数用于传递每次发生此中断时递增的数字。 */
+    xTimerPendFunctionCallFromISR(vDeferredHandlingFunction, NULL, ulParameterValue, &xHigherPriorityTaskWoken);
     ulParameterValue++;
 
-    /* Pass the xHigherPriorityTaskWoken value into portYIELD_FROM_ISR().  If
-     * xHigherPriorityTaskWoken was set to pdTRUE inside
-     * xTimerPendFunctionCallFromISR()	then calling portYIELD_FROM_ISR() will
-     * request a context switch.  If xHigherPriorityTaskWoken is still pdFALSE then
-     * calling	portYIELD_FROM_ISR() will have no effect.  The implementation of
-     * portYIELD_FROM_ISR() used by the Windows port includes a return statement,
-     * which is why this function does not explicitly return a value. */
-    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+    /* 将 xHigherPriorityTaskWoken 值传递给 portYIELD_FROM_ISR()。如果
+     * xHigherPriorityTaskWoken 在 xTimerPendFunctionCallFromISR() 内部被设置为 pdTRUE，
+     * 则调用 portYIELD_FROM_ISR() 将请求上下文切换。如果 xHigherPriorityTaskWoken 仍为 pdFALSE，
+     * 则调用 portYIELD_FROM_ISR() 不会产生任何影响。Windows 端口使用的
+     * portYIELD_FROM_ISR() 实现包含一个 return 语句，
+     * 这就是为什么此函数不显式返回值的原因。 */
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 /*-----------------------------------------------------------*/
 
-static void vDeferredHandlingFunction( void * pvParameter1,
-                                       uint32_t ulParameter2 )
+static void vDeferredHandlingFunction(void *pvParameter1,
+                                      uint32_t ulParameter2)
 {
-    /* Remove the compiler warning indicating that pvParameter1 is not used, as
-     * pvParameter1 is not used in this example. */
-    ( void ) pvParameter1;
+    /* 通过将 pvParameter1 声明为未使用来消除编译器警告，
+     * 因为在此示例中未使用 pvParameter1。 */
+    (void)pvParameter1;
 
-    /* Process the event - in this case just print out a message and the value
-     * of ulParameter2. */
-    vPrintStringAndNumber( "Handler function - Processing event ", ulParameter2 );
+    /* 处理事件 - 在这种情况下，只需打印出一条消息和
+     * ulParameter2 的值。 */
+    vPrintStringAndNumber("处理函数 - 正在处理事件 ", ulParameter2);
 }

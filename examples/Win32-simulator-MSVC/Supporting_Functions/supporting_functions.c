@@ -1,107 +1,95 @@
 /*
-    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
-    All rights reserved
+    FreeRTOS V9.0.0 - 版权所有 (C) 2016 Real Time Engineers Ltd.
+    保留所有权利
 
-    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
-
-    ***************************************************************************
-     *                                                                       *
-     *    FreeRTOS provides completely free yet professionally developed,    *
-     *    robust, strictly quality controlled, supported, and cross          *
-     *    platform software that has become a de facto standard.             *
-     *                                                                       *
-     *    Help yourself get started quickly and support the FreeRTOS         *
-     *    project by purchasing a FreeRTOS tutorial book, reference          *
-     *    manual, or both from: http://www.FreeRTOS.org/Documentation        *
-     *                                                                       *
-     *    Thank you!                                                         *
-     *                                                                       *
-    ***************************************************************************
-
-    This file is part of the FreeRTOS distribution.
-
-    FreeRTOS is free software; you can redistribute it and/or modify it under
-    the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
-
-    >>! NOTE: The modification to the GPL is included to allow you to distribute
-    >>! a combined work that includes FreeRTOS without being obliged to provide
-    >>! the source code for proprietary components outside of the FreeRTOS
-    >>! kernel.
-
-    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
-    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE.  Full license text is available from the following
-    link: http://www.freertos.org/a00114.html
-
-    1 tab == 4 spaces!
+    访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
 
     ***************************************************************************
      *                                                                       *
-     *    Having a problem?  Start by reading the FAQ "My application does   *
-     *    not run, what could be wrong?"                                     *
+     *    FreeRTOS提供完全免费且专业开发的、健壮的、严格质量控制的、        *
+     *    支持多平台的软件，已成为事实上的标准。                            *
+     *                                                                       *
+     *    通过购买FreeRTOS教程书籍、参考手册或两者来帮助自己快速入门        *
+     *    并支持FreeRTOS项目：http://www.FreeRTOS.org/Documentation         *
+     *                                                                       *
+     *    感谢您的支持！                                                     *
+     *                                                                       *
+    ***************************************************************************
+
+    本文件是FreeRTOS发行版的一部分。
+
+    FreeRTOS是自由软件；您可以根据GNU通用公共许可证（第2版）的条款重新分发
+    和/或修改它，该许可证由自由软件基金会发布，并由FreeRTOS例外条款修改。
+
+    >>! 注意：对GPL的修改是为了允许您分发包含FreeRTOS的组合工作，而无需提供
+    >>! FreeRTOS内核之外的专有组件的源代码。
+
+    FreeRTOS的分发希望它会有用，但不提供任何保证；甚至没有对适销性或特定
+    用途适用性的暗示保证。完整的许可证文本可从以下链接获得：
+    http://www.freertos.org/a00114.html
+
+    1个制表符 == 4个空格！
+
+    ***************************************************************************
+     *                                                                       *
+     *    遇到问题？从阅读FAQ"我的应用程序无法运行，可能出了什么问题？"     *
+     *    开始。                                                             *
      *                                                                       *
      *    http://www.FreeRTOS.org/FAQHelp.html                               *
      *                                                                       *
     ***************************************************************************
 
-    http://www.FreeRTOS.org - Documentation, books, training, latest versions,
-    license and Real Time Engineers Ltd. contact details.
+    http://www.FreeRTOS.org - 文档、书籍、培训、最新版本、许可证和
+    Real Time Engineers Ltd.联系详情。
 
-    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
-    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
-    compatible FAT file system, and our tiny thread aware UDP/IP stack.
+    http://www.FreeRTOS.org/plus - FreeRTOS生态系统产品的选择，
+    包括FreeRTOS+Trace - 不可或缺的生产力工具、DOS兼容的FAT文件系统
+    和我们的小型线程感知UDP/IP协议栈。
 
-    http://www.OpenRTOS.com - Real Time Engineers ltd license FreeRTOS to High
-    Integrity Systems to sell under the OpenRTOS brand.  Low cost OpenRTOS
-    licenses offer ticketed support, indemnification and middleware.
+    http://www.OpenRTOS.com - Real Time Engineers ltd将FreeRTOS授权给
+    High Integrity Systems，以OpenRTOS品牌销售。低成本OpenRTOS许可证
+    提供有担保的支持、赔偿和中间件。
 
-    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
-    engineered and independently SIL3 certified version for use in safety and
-    mission critical applications that require provable dependability.
+    http://www.SafeRTOS.com - High Integrity Systems还提供一个安全工程
+    和独立SIL3认证的版本，用于需要可证明可靠性的安全和任务关键型应用程序。
 
-    1 tab == 4 spaces!
+    1个制表符 == 4个空格！
 */
 
 /*
- * This file contains some supporting functions that are used by all the
- * examples.  These fall into three categories:
+ * 本文件包含一些所有示例都使用的支持函数。这些函数分为三类：
  *
- * 1) IO functions:  vPrintString() and vPrintStringAndNumber().
+ * 1) 输入/输出函数：vPrintString()和vPrintStringAndNumber()。
  *
- * To allow maximum portability the book examples do not rely on any chip
- * specific IO, and instead just output to a console.  However, printing to a
- * console in this manner is not thread safe, so a function is used so the
- * terminal output can be wrapped in a critical section.
+ * 为了允许最大的可移植性，书中的示例不依赖于任何特定芯片的IO，
+ * 而是只输出到控制台。然而，以这种方式打印到控制台不是线程安全的，
+ * 所以使用函数将终端输出包装在临界区内，确保输出的完整性。
  *
- * 2) RTOS hook functions: vApplicationMallocFailedHook(), vApplicationIdleHook()
- * vApplicationIdleHook(), vApplicationStackOverflowHook() and
- * vApplicationTickHook().
+ * 2) RTOS钩子函数：vApplicationMallocFailedHook()、vApplicationIdleHook()、
+ * vApplicationStackOverflowHook()和vApplicationTickHook()。
  *
- * These are functions that can optionally be defined by the application writer
- * in order to get notifications of events occurring with the executing
- * application.  More information is provided in the comments within the
- * function definitions in this file, and in the book text.
+ * 这些是应用程序开发者可以选择定义的函数，以便在应用程序执行过程中
+ * 获得事件通知。更多信息在本文件中的函数定义注释和书中的文本中提供。
+ * 钩子函数允许用户代码在特定的RTOS事件发生时执行，如内存分配失败、
+ * 空闲任务运行、堆栈溢出检测和每个系统节拍。
  *
- * 3) configASSERT() implementation: vAssertCalled()
+ * 3) configASSERT()实现：vAssertCalled()
  *
- * The FreeRTOS source code uses an assert() function to trap user and other
- * errors.  configASSERT() is defined in FreeRTOSConfig.h to call
- * vAssertCalled(), which is implemented in this file.  More information is
- * provided in the book text.
+ * FreeRTOS源代码使用assert()函数来捕获用户和其他错误。configASSERT()
+ * 在FreeRTOSConfig.h中定义为调用vAssertCalled()，后者在本文件中实现。
+ * 这是一种调试机制，用于捕获和定位运行时错误。
  */
 
-/* Standard includes. */
+/* 标准包含文件 */
 #include <stdio.h>
 #include <conio.h>
 
-/* FreeRTOS includes. */
+/* FreeRTOS包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
 
-/* If this variable is true then pressing a key will end the application.  Some
-examples set this to pdFALSE to allow key presses to be used by the
-application. */
+/* 如果此变量为true，则按键将结束应用程序。
+   一些示例将此设置为pdFALSE，以允许应用程序使用按键。 */
 BaseType_t xKeyPressesStopApplication = pdTRUE;
 
 /*-----------------------------------------------------------*/
@@ -110,34 +98,33 @@ void vPrintString( const char *pcString )
 {
 BaseType_t xKeyHit = pdFALSE;
 
-	/* Print the string, using a critical section as a crude method of mutual
-	exclusion. */
+	/* 打印字符串，使用临界区作为互斥的简单方法。
+	   这确保了在多任务环境中输出不会被中断或混乱。 */
 	taskENTER_CRITICAL();
 	{
 		printf( "%s", pcString );
-		fflush( stdout );
+		fflush( stdout );  /* 刷新输出缓冲区，确保文本立即显示 */
 
-		/* Allow any key to stop the application. */
+		/* 允许任何键停止应用程序 */
 		if( xKeyPressesStopApplication == pdTRUE )
 		{
-			xKeyHit = _kbhit();
+			xKeyHit = _kbhit();  /* 检查是否有键被按下 */
 		}
 	}
 	taskEXIT_CRITICAL();
 
-    /* Allow any key to stop the application running.  A real application that
-    actually used the key value should protect access to the keyboard too. */
+    /* 允许任何键停止应用程序运行。
+       实际使用按键值的真实应用程序也应该保护对键盘的访问。 */
 	if( xKeyHit != pdFALSE )
 	{
-		vTaskEndScheduler();
+		vTaskEndScheduler();  /* 停止RTOS调度器 */
 	}
 }
 /*-----------------------------------------------------------*/
 
 void vPrintStringAndNumber( const char *pcString, uint32_t ulValue )
 {
-	/* Print the string, using a critical section as a crude method of mutual
-	exclusion. */
+	/* 打印字符串和数值，使用临界区作为互斥的简单方法 */
 	taskENTER_CRITICAL();
 	{
 		printf( "%s %lu\r\n", pcString, ulValue );
@@ -145,7 +132,7 @@ void vPrintStringAndNumber( const char *pcString, uint32_t ulValue )
 	}
 	taskEXIT_CRITICAL();
 
-	/* Allow any key to stop the application running. */
+	/* 允许任何键停止应用程序运行 */
 	if( xKeyPressesStopApplication == pdTRUE )
 	{
 		if( _kbhit() )
@@ -158,15 +145,15 @@ void vPrintStringAndNumber( const char *pcString, uint32_t ulValue )
 
 void vPrintTwoStrings( const char *pcString1, const char *pcString2 )
 {
-	/* Print the string, using a critical section as a crude method of mutual
-	exclusion. */
+	/* 打印两个字符串，使用任务挂起作为互斥方法
+       与临界区不同，这会暂停所有任务的调度 */
 	vTaskSuspendAll();
 	{
-		printf( "At time %lu: %s %s\r\n", xTaskGetTickCount(), pcString1, pcString2 );
+		printf( "当前时间 %lu: %s %s\r\n", xTaskGetTickCount(), pcString1, pcString2 );
 	}
 	xTaskResumeAll();
 
-	/* Allow any key to stop the application running. */
+	/* 允许任何键停止应用程序运行 */
 	if( xKeyPressesStopApplication == pdTRUE )
 	{
 		if( _kbhit() )
@@ -179,36 +166,31 @@ void vPrintTwoStrings( const char *pcString1, const char *pcString2 )
 
 void vApplicationMallocFailedHook( void )
 {
-	/* vApplicationMallocFailedHook() will only be called if
-	configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h.  It is a hook
-	function that will get called if a call to pvPortMalloc() fails.
-	pvPortMalloc() is called internally by the kernel whenever a task, queue,
-	timer, event group, or semaphore is created.  It is also called by various
-	parts of the demo application.  If heap_1.c, heap_2.c or heap_4.c are used,
-	then the size of the heap available to pvPortMalloc() is defined by
-	configTOTAL_HEAP_SIZE in FreeRTOSConfig.h, and the xPortGetFreeHeapSize()
-	API function can be used to query the size of free heap space that remains.
-	More information is provided in the book text. */
+	/* 只有当FreeRTOSConfig.h中configUSE_MALLOC_FAILED_HOOK设置为1时，
+	   vApplicationMallocFailedHook()才会被调用。这是一个钩子函数，
+	   当调用pvPortMalloc()失败时会被调用。
+	   
+	   当内核创建任务、队列、定时器、事件组或信号量时，pvPortMalloc()会在内部被调用。
+	   示例应用程序的各个部分也会调用它。如果使用heap_1.c、heap_2.c或heap_4.c，
+	   则pvPortMalloc()可用的堆大小由FreeRTOSConfig.h中的configTOTAL_HEAP_SIZE定义，
+	   并且可以使用xPortGetFreeHeapSize() API函数查询剩余的空闲堆空间大小。 */
 	vAssertCalled( __LINE__, __FILE__ );
 }
 /*-----------------------------------------------------------*/
 
-/* An example vApplicationIdleHook() implementation is included here for
-completeness, but it is not actually built (it is excluded by the #if 0) as it
-is also defined by the examples that actually make use of the function. */
+/* 此处包含一个vApplicationIdleHook()示例实现，以求完整性，
+   但实际上并未构建（它由#if 0排除），因为它也由实际使用该函数的示例定义。 */
 #if 0
 	void vApplicationIdleHook( void )
 	{
-		/* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
-		to 1 in FreeRTOSConfig.h.  It will be called on each iteration of the idle
-		task.  It is essential that code added to this hook function never attempts
-		to block in any way (for example, call xQueueReceive() with a block time
-		specified, or call vTaskDelay()).  If the application makes use of the
-		vTaskDelete() API function then it is also important that
-		vApplicationIdleHook() is permitted to return to its calling function,
-		because it is the responsibility of the idle task to clean up memory
-		allocated by the kernel to any task that has since been deleted.  More
-		information is provided in the book text. */
+		/* 只有当FreeRTOSConfig.h中configUSE_IDLE_HOOK设置为1时，
+		   vApplicationIdleHook()才会被调用。它将在空闲任务的每次迭代时被调用。
+		   
+		   重要的是添加到此钩子函数的代码不得以任何方式尝试阻塞
+		   （例如，指定了阻塞时间的xQueueReceive()调用，或vTaskDelay()调用）。
+		   
+		   如果应用程序使用vTaskDelete() API函数，那么允许vApplicationIdleHook()
+		   返回到其调用函数也很重要，因为空闲任务负责清理内核分配给已删除任务的内存。 */
 	}
 #endif /* 0 */
 /*-----------------------------------------------------------*/
@@ -218,28 +200,29 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 	( void ) pcTaskName;
 	( void ) pxTask;
 
-	/* Run time stack overflow checking is performed if
-	configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook	function is
-	called if a stack overflow is detected.  More information is provided in the
-	book text. */
+	/* 如果configCHECK_FOR_STACK_OVERFLOW定义为1或2，则执行运行时堆栈溢出检查。
+	   当检测到堆栈溢出时，会调用此钩子函数。
+	   这个函数允许开发者在堆栈溢出情况发生时采取适当的措施，如记录错误或重启系统。 */
 	vAssertCalled( __LINE__, __FILE__ );
 }
 /*-----------------------------------------------------------*/
 
 void vApplicationTickHook( void )
 {
-	/* This function will be called by each tick interrupt if
-	configUSE_TICK_HOOK is set to 1 in FreeRTOSConfig.h.  User code can be
-	added here, but the tick hook is called from an interrupt context, so
-	code must not attempt to block, and only the interrupt safe FreeRTOS API
-	functions can be used (those that end in FromISR()). */
+	/* 如果FreeRTOSConfig.h中configUSE_TICK_HOOK设置为1，则每个节拍中断都会调用此函数。
+	   用户代码可以在此处添加，但节拍钩子是从中断上下文调用的，
+	   因此代码不得尝试阻塞，并且只能使用中断安全的FreeRTOS API函数
+	   （那些以FromISR()结尾的函数）。 
+	   
+	   这个钩子对于需要精确定时或周期性执行的短任务非常有用，如LED闪烁或
+	   其他需要与系统节拍同步的操作。 */
 }
 /*-----------------------------------------------------------*/
 
 void vAssertCalled( uint32_t ulLine, const char * const pcFile )
 {
-/* The following two variables are just to ensure the parameters are not
-optimised away and therefore unavailable when viewed in the debugger. */
+/* 以下两个变量仅用于确保参数不会被优化掉，
+   因此在调试器中查看时可用。 */
 volatile uint32_t ulLineNumber = ulLine, ulSetNonZeroInDebuggerToReturn = 0;
 volatile const char * const pcFileName = pcFile;
 
@@ -247,15 +230,15 @@ volatile const char * const pcFileName = pcFile;
 	{
 		while( ulSetNonZeroInDebuggerToReturn == 0 )
 		{
-			/* If you want to set out of this function in the debugger to see
-			the	assert() location then set ulSetNonZeroInDebuggerToReturn to a
-			non-zero value. */
+			/* 如果您希望在调试器中跳出此函数以查看assert()位置，
+			   请将ulSetNonZeroInDebuggerToReturn设置为非零值。
+			   这是一个无限循环，用于在断言失败时暂停程序执行，
+			   便于调试人员检查失败原因。 */
 		}
 	}
 	taskEXIT_CRITICAL();
 
-	/* Remove the potential for compiler warnings issued because the variables
-	are set but not subsequently referenced. */
+	/* 移除设置但随后未引用变量可能导致的编译器警告。 */
 	( void ) pcFileName;
 	( void ) ulLineNumber;
 }
