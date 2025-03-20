@@ -1,73 +1,70 @@
 /*
- *  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ *  版权所有 Amazon.com Inc. 或其附属公司。保留所有权利。
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  本文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了《掌握FreeRTOS实时内核》一书中所列举示例的Windows端口实现。
  *
  */
 
-/* Standard includes - used to seed the random number generator. */
+/* 标准包含 - 用于初始化随机数生成器 */
 #include <time.h>
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org 包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "event_groups.h"
 
-/* Demo includes. */
+/* 演示包含文件 */
 #include "supporting_functions.h"
 
-/* Definitions for the event bits in the event group. */
-#define mainFIRST_TASK_BIT     ( 1UL << 0UL ) /* Event bit 0, which is set by the first task. */
-#define mainSECOND_TASK_BIT    ( 1UL << 1UL ) /* Event bit 1, which is set by the second task. */
-#define mainTHIRD_TASK_BIT     ( 1UL << 2UL ) /* Event bit 2, which is set by the third task. */
+/* 事件组中事件位的定义 */
+#define mainFIRST_TASK_BIT     ( 1UL << 0UL ) /* 事件位0，由第一个任务设置 */
+#define mainSECOND_TASK_BIT    ( 1UL << 1UL ) /* 事件位1，由第二个任务设置 */
+#define mainTHIRD_TASK_BIT     ( 1UL << 2UL ) /* 事件位2，由第三个任务设置 */
 
-/* Pseudo random number generation functions - implemented in this file as the
- * MSVC rand() function has unexpected consequences. */
+/* 伪随机数生成函数 - 在本文件中实现，因为MSVC的rand()函数可能产生意外结果 */
 static uint32_t prvRand( void );
 static void prvSRand( uint32_t ulSeed );
 
-/* Three instances of this task are created. */
+/* 将创建三个该任务的实例 */
 static void vSyncingTask( void * pvParameters );
 
 /*-----------------------------------------------------------*/
 
-/* Use by the pseudo random number generator. */
+/* 伪随机数生成器使用的变量 */
 static uint32_t ulNextRand;
 
-/* Declare the event group used to synchronize the three tasks. */
+/* 声明用于同步三个任务的事件组 */
 EventGroupHandle_t xEventGroup;
 
 int main( void )
 {
-    /* The tasks created in this example block for a random time.  The block
-     * time is generated using rand() - seed the random number generator. */
+    /* 本例中创建的任务会随机阻塞一段时间。
+     * 阻塞时间使用rand()生成 - 初始化随机数生成器 */
     prvSRand( ( uint32_t ) time( NULL ) );
 
-    /* Before an event group can be used it must first be created. */
+    /* 在使用事件组之前，必须先创建它 */
     xEventGroup = xEventGroupCreate();
 
-    /* Create three instances of the task.  Each task is given a different name,
-     * which is later printed out to give a visual indication of which task is
-     * executing.  The event bit to use when the task reaches its synchronization
-     * point is passed into the task using the task parameter. */
+    /* 创建三个任务实例。每个任务被赋予不同的名称，
+     * 稍后打印出来以直观地指示哪个任务正在执行。
+     * 当任务达到其同步点时使用的事件位通过任务参数传递给任务。 */
     xTaskCreate( vSyncingTask, "Task 1", 1000, ( void * ) mainFIRST_TASK_BIT, 1, NULL );
     xTaskCreate( vSyncingTask, "Task 2", 1000, ( void * ) mainSECOND_TASK_BIT, 1, NULL );
     xTaskCreate( vSyncingTask, "Task 3", 1000, ( void * ) mainTHIRD_TASK_BIT, 1, NULL );
 
-    /* Start the scheduler so the created tasks start executing. */
+    /* 启动调度器，使创建的任务开始执行 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 下面的代码行不应该被执行到，因为vTaskStartScheduler()
+     * 只有在没有足够的FreeRTOS堆内存可用于创建空闲任务和
+     * （如果配置了）定时器任务时才会返回。堆管理和陷阱堆
+     * 耗尽的技术在书中有描述。 */
     for( ; ; )
     {
     }
@@ -78,54 +75,48 @@ int main( void )
 
 static void vSyncingTask( void * pvParameters )
 {
+    /* 所有任务同步位的组合 */
     const EventBits_t uxAllSyncBits = ( mainFIRST_TASK_BIT | mainSECOND_TASK_BIT | mainTHIRD_TASK_BIT );
-    const TickType_t xMaxDelay = pdMS_TO_TICKS( 4000UL );
-    const TickType_t xMinDelay = pdMS_TO_TICKS( 200UL );
-    TickType_t xDelayTime;
-    EventBits_t uxThisTasksSyncBit;
+    const TickType_t xMaxDelay = pdMS_TO_TICKS( 4000UL ); /* 最大延迟时间（毫秒转为时钟节拍） */
+    const TickType_t xMinDelay = pdMS_TO_TICKS( 200UL );  /* 最小延迟时间（毫秒转为时钟节拍） */
+    TickType_t xDelayTime;                                /* 实际延迟时间变量 */
+    EventBits_t uxThisTasksSyncBit;                       /* 当前任务使用的同步位 */
 
-    /* Three instances of this task are created - each task uses a different
-     * event bit in the synchronization.  The event bit to use by this task
-     * instance is passed into the task using the task's parameter.  Store it in
-     * the uxThisTasksSyncBit variable. */
+    /* 创建了三个此任务的实例 - 每个任务在同步中使用不同的事件位。
+     * 此任务实例使用的事件位通过任务的参数传入。
+     * 将其存储在uxThisTasksSyncBit变量中。 */
     uxThisTasksSyncBit = ( EventBits_t ) pvParameters;
 
     for( ; ; )
     {
-        /* Simulate this task taking some time to perform an action by delaying
-         * for a pseudo random time.  This prevents all three instances of this
-         * task from reaching the synchronization point at the same time, and
-         * allows the example's behavior to be observed more easily. */
+        /* 通过延迟一个伪随机时间来模拟此任务执行某些操作所需的时间。
+         * 这可以防止所有三个任务实例同时到达同步点，
+         * 并使示例的行为更容易观察。 */
         xDelayTime = ( prvRand() % xMaxDelay ) + xMinDelay;
         vTaskDelay( xDelayTime );
 
-        /* Print out a message to show this task has reached its synchronization
-         * point.  pcTaskGetTaskName() is an API function that returns the name
-         * assigned to the task when the task was created. */
-        vPrintTwoStrings( pcTaskGetTaskName( NULL ), "reached sync point" );
+        /* 打印一条消息，表明此任务已达到其同步点。
+         * pcTaskGetTaskName()是一个API函数，返回创建任务时分配给任务的名称。 */
+        vPrintTwoStrings( pcTaskGetTaskName( NULL ), "已到达同步点" );
 
-        /* Wait for all the tasks to have reached their respective
-         * synchronization points. */
-        xEventGroupSync( /* The event group used to synchronize. */
+        /* 等待所有任务都达到各自的同步点 */
+        xEventGroupSync( 
+            /* 用于同步的事件组 */
             xEventGroup,
 
-            /* The bit set by this task to indicate it has reached
-             * the synchronization point. */
+            /* 由此任务设置的位，表示它已达到同步点 */
             uxThisTasksSyncBit,
 
-            /* The bits to wait for, one bit for each task taking
-             * part in the synchronization. */
+            /* 要等待的位，参与同步的每个任务对应一个位 */
             uxAllSyncBits,
 
-            /* Wait indefinitely for all three tasks to reach the
-             * synchronization point. */
+            /* 无限期等待所有三个任务达到同步点 */
             portMAX_DELAY );
 
-        /* Print out a message to show this task has passed its synchronization
-         * point.  As an indefinite delay was used the following line will only be
-         * reached after all the tasks reached their respective synchronization
-         * points. */
-        vPrintTwoStrings( pcTaskGetTaskName( NULL ), "exited sync point" );
+        /* 打印一条消息，表明此任务已通过其同步点。
+         * 由于使用了无限期延迟，因此只有在所有任务都达到
+         * 各自的同步点后，才会执行下面的代码行。 */
+        vPrintTwoStrings( pcTaskGetTaskName( NULL ), "已退出同步点" );
     }
 }
 /*-----------------------------------------------------------*/
@@ -135,8 +126,8 @@ static uint32_t prvRand( void )
     const uint32_t ulMultiplier = 0x015a4e35UL, ulIncrement = 1UL;
     uint32_t ulReturn;
 
-    /* Utility function to generate a pseudo random number as the MSVC rand()
-     * function has unexpected consequences. */
+    /* 生成伪随机数的工具函数，因为MSVC的rand()函数
+     * 可能产生意外结果。这里使用线性同余法生成随机数。 */
     taskENTER_CRITICAL();
     ulNextRand = ( ulMultiplier * ulNextRand ) + ulIncrement;
     ulReturn = ( ulNextRand >> 16UL ) & 0x7fffUL;
@@ -147,7 +138,7 @@ static uint32_t prvRand( void )
 
 static void prvSRand( uint32_t ulSeed )
 {
-    /* Utility function to seed the pseudo random number generator. */
+    /* 用于初始化伪随机数生成器的工具函数 */
     ulNextRand = ulSeed;
 }
 /*-----------------------------------------------------------*/

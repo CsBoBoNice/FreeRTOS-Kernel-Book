@@ -1,82 +1,73 @@
 /*
- *  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ *  版权所有 Amazon.com Inc. 或其附属公司。保留所有权利。
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  本文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这里包含了《掌握FreeRTOS实时内核》一书中列出的示例的Windows端口实现。
  *
  */
 
-/* Standard includes. */
+/* 标准包含文件 */
 #include <stdio.h>
 #include <conio.h>
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 
-/* Demo includes. */
+/* 示例支持函数包含文件 */
 #include "supporting_functions.h"
 
-/* The task that sends messages to the stdio gatekeeper.  Two instances of this
- * task are created. */
+/* 发送消息到标准输出守门人的任务。此任务创建两个实例。 */
 static void prvPrintTask( void * pvParameters );
 
-/* The gatekeeper task itself. */
+/* 守门人任务本身 */
 static void prvStdioGatekeeperTask( void * pvParameters );
 
-/* Define the strings that the tasks and interrupt will print out via the
- * gatekeeper. */
+/* 定义任务和中断将通过守门人打印的字符串 */
 static const char * pcStringsToPrint[] =
 {
-    "Task 1 ****************************************************\r\n",
-    "Task 2 ----------------------------------------------------\r\n",
-    "Message printed from the tick hook interrupt ##############\r\n"
+    "任务1 ****************************************************\r\n",
+    "任务2 ----------------------------------------------------\r\n",
+    "来自时钟钩子中断的消息 ##############\r\n"
 };
 
 /*-----------------------------------------------------------*/
 
-/* Declare a variable of type QueueHandle_t.  This is used to send messages from
- * the print tasks to the gatekeeper task. */
+/* 声明一个QueueHandle_t类型的变量。这用于从打印任务向守门人任务发送消息。 */
 static QueueHandle_t xPrintQueue;
 
-/* The tasks block for a pseudo random time between 0 and xMaxBlockTime ticks. */
+/* 任务会阻塞一个伪随机时间，范围在0到xMaxBlockTime之间的节拍数。 */
 const TickType_t xMaxBlockTimeTicks = 0x20;
 
 int main( void )
 {
-    /* Before a queue is used it must be explicitly created.  The queue is created
-     * to hold a maximum of 5 character pointers. */
+    /* 在使用队列前必须显式创建它。该队列创建为最多容纳5个字符指针。 */
     xPrintQueue = xQueueCreate( 5, sizeof( char * ) );
 
-    /* Check the queue was created successfully. */
+    /* 检查队列是否成功创建 */
     if( xPrintQueue != NULL )
     {
-        /* Create two instances of the tasks that send messages to the gatekeeper.
-         * The	index to the string they attempt to write is passed in as the task
-         * parameter (4th parameter to xTaskCreate()).  The tasks are created at
-         * different priorities so some pre-emption will occur. */
+        /* 创建两个向守门人发送消息的任务实例。它们尝试写入的字符串索引作为任务参数传入
+         * （xTaskCreate的第4个参数）。这些任务以不同的优先级创建，因此会发生一些抢占。 */
         xTaskCreate( prvPrintTask, "Print1", 1000, ( void * ) 0, 1, NULL );
         xTaskCreate( prvPrintTask, "Print2", 1000, ( void * ) 1, 2, NULL );
 
-        /* Create the gatekeeper task.  This is the only task that is permitted
-         * to access standard out. */
+        /* 创建守门人任务。这是唯一被允许访问标准输出的任务。 */
         xTaskCreate( prvStdioGatekeeperTask, "Gatekeeper", 1000, NULL, 0, NULL );
 
-        /* Start the scheduler so the created tasks start executing. */
+        /* 启动调度器，使创建的任务开始执行 */
         vTaskStartScheduler();
     }
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 下面这行代码永远不应该被执行到，因为vTaskStartScheduler()只有在没有足够的
+     * FreeRTOS堆内存来创建空闲任务和（如果配置了）定时器任务时才会返回。堆管理和
+     * 捕获堆耗尽的技术在书中有详细描述。 */
     for( ; ; )
     {
     }
@@ -89,23 +80,20 @@ static void prvStdioGatekeeperTask( void * pvParameters )
 {
     char * pcMessageToPrint;
 
-    /* This is the only task that is allowed to write to the terminal output.
-     * Any other task wanting to write to the output does not access the terminal
-     * directly, but instead sends the output to this task.  As only one task
-     * writes to standard out there are no mutual exclusion or serialization issues
-     * to consider within this task itself. */
+    /* 这是唯一允许写入终端输出的任务。任何其他想要写入输出的任务不直接访问终端，
+     * 而是将输出发送给这个任务。由于只有一个任务写入标准输出，所以在这个任务本身
+     * 内部不需要考虑互斥或序列化问题。 */
     for( ; ; )
     {
-        /* Wait for a message to arrive. */
+        /* 等待消息到达 */
         xQueueReceive( xPrintQueue, &pcMessageToPrint, portMAX_DELAY );
 
-        /* There is no need to check the return	value as the task will block
-         * indefinitely and only run again when a message has arrived.  When the
-         * next line is executed there will be a message to be output. */
+        /* 不需要检查返回值，因为任务将无限期阻塞，只有在消息到达时才会再次运行。
+         * 当执行下一行代码时，一定会有消息需要输出。 */
         printf( "%s", pcMessageToPrint );
         fflush( stdout );
 
-        /* Now simply go back to wait for the next message. */
+        /* 现在简单地返回等待下一条消息 */
     }
 }
 /*-----------------------------------------------------------*/
@@ -114,18 +102,15 @@ void vApplicationTickHook( void )
 {
     static int iCount = 0;
 
-    /* Print out a message every 200 ticks.  The message is not written out
-     * directly, but sent to the gatekeeper task. */
+    /* 每200个时钟节拍打印一条消息。消息不是直接写出，而是发送给守门人任务。 */
     iCount++;
 
     if( iCount >= 200 )
     {
-        /* In this case the last parameter (xHigherPriorityTaskWoken) is not
-         * actually used and is set to NULL. */
+        /* 在这种情况下，最后一个参数（xHigherPriorityTaskWoken）实际上没有使用，设置为NULL。 */
         xQueueSendToFrontFromISR( xPrintQueue, &( pcStringsToPrint[ 2 ] ), NULL );
 
-        /* Reset the count ready to print out the string again in 200 ticks
-         * time. */
+        /* 重置计数器，准备在200个时钟节拍后再次打印字符串 */
         iCount = 0;
     }
 }
@@ -135,24 +120,20 @@ static void prvPrintTask( void * pvParameters )
 {
     int iIndexToString;
 
-    /* Two instances of this task are created so the index to the string the task
-     * will send to the gatekeeper task is passed in the task parameter.  Cast this
-     * to the required type. */
+    /* 创建此任务的两个实例，所以任务要发送给守门人任务的字符串索引通过任务参数传入。
+     * 将其转换为所需类型。 */
     iIndexToString = ( int ) pvParameters;
 
     for( ; ; )
     {
-        /* Print out the string, not directly but by passing the string to the
-         * gatekeeper task on the queue.  The queue is created before the scheduler is
-         * started so will already exist by the time this task executes.  A block time
-         * is not specified as there should always be space in the queue. */
+        /* 打印字符串，不是直接打印，而是通过队列将字符串传递给守门人任务。
+         * 队列在调度器启动前创建，所以在此任务执行时队列已经存在。
+         * 未指定阻塞时间，因为队列中应该始终有空间。 */
         xQueueSendToBack( xPrintQueue, &( pcStringsToPrint[ iIndexToString ] ), 0 );
 
-        /* Wait a pseudo random time.  Note that rand() is not necessarily
-         * re-entrant, but in this case it does not really matter as the code does
-         * not care what value is returned.  In a more secure application a version
-         * of rand() that is known to be re-entrant should be used - or calls to
-         * rand() should be protected using a critical section. */
+        /* 等待一个伪随机时间。注意，rand()不一定是可重入的，但在这种情况下并不重要，
+         * 因为代码不关心返回什么值。在更安全的应用程序中，应该使用已知可重入的rand()版本，
+         * 或者使用关键段保护对rand()的调用。 */
         vTaskDelay( ( rand() % xMaxBlockTimeTicks ) );
     }
 }
@@ -160,15 +141,12 @@ static void prvPrintTask( void * pvParameters )
 
 
 
-/* In other examples this function is implemented within the
- * supporting_functions.c source file - but that source file is not included in
- * this example as to include it would result in multiple definitions of the tick
- * hook function. */
+/* 在其他示例中，此函数在supporting_functions.c源文件中实现，但本示例不包含该源文件，
+ * 因为包含它会导致时钟钩子函数的多重定义。 */
 void vAssertCalled( uint32_t ulLine,
                     const char * const pcFile )
 {
-/* The following two variables are just to ensure the parameters are not
-*  optimised away and therefore unavailable when viewed in the debugger. */
+/* 以下两个变量仅确保参数不会被优化掉，因此在调试器中查看时可用。 */
     volatile uint32_t ulLineNumber = ulLine, ulSetNonZeroInDebuggerToReturn = 0;
     volatile const char * const pcFileName = pcFile;
 
@@ -176,36 +154,29 @@ void vAssertCalled( uint32_t ulLine,
     {
         while( ulSetNonZeroInDebuggerToReturn == 0 )
         {
-            /* If you want to set out of this function in the debugger to see
-             * the	assert() location then set ulSetNonZeroInDebuggerToReturn to a
-             * non-zero value. */
+            /* 如果你想在调试器中退出这个函数以查看assert()位置，
+             * 请将ulSetNonZeroInDebuggerToReturn设置为非零值。 */
         }
     }
     taskEXIT_CRITICAL();
 
-    /* Remove the potential for compiler warnings issued because the variables
-     * are set but not subsequently referenced. */
+    /* 消除潜在的编译器警告，这些警告是因为变量已设置但随后未引用。 */
     ( void ) pcFileName;
     ( void ) ulLineNumber;
 }
 /*-----------------------------------------------------------*/
 
-/* In other examples this function is implemented within the
- * supporting_functions.c source file - but that source file is not included in
- * this example as to include it would result in multiple definitions of the tick
- * hook function. */
+/* 在其他示例中，此函数在supporting_functions.c源文件中实现，但本示例不包含该源文件，
+ * 因为包含它会导致时钟钩子函数的多重定义。 */
 void vApplicationMallocFailedHook( void )
 {
-    /* vApplicationMallocFailedHook() will only be called if
-     * configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h.  It is a hook
-     * function that will get called if a call to pvPortMalloc() fails.
-     * pvPortMalloc() is called internally by the kernel whenever a task, queue,
-     * timer, event group, or semaphore is created.  It is also called by various
-     * parts of the demo application.  If heap_1.c, heap_2.c or heap_4.c are used,
-     * then the size of the heap available to pvPortMalloc() is defined by
-     * configTOTAL_HEAP_SIZE in FreeRTOSConfig.h, and the xPortGetFreeHeapSize()
-     * API function can be used to query the size of free heap space that remains.
-     * More information is provided in the book text. */
+    /* 只有当FreeRTOSConfig.h中configUSE_MALLOC_FAILED_HOOK设置为1时，
+     * vApplicationMallocFailedHook()才会被调用。它是一个在pvPortMalloc()调用失败时
+     * 会被调用的钩子函数。每当内核创建任务、队列、定时器、事件组或信号量时，
+     * pvPortMalloc()都会被内部调用。演示应用程序的各个部分也会调用它。
+     * 如果使用heap_1.c、heap_2.c或heap_4.c，则pvPortMalloc()可用的堆大小由
+     * FreeRTOSConfig.h中的configTOTAL_HEAP_SIZE定义，并且可以使用xPortGetFreeHeapSize()
+     * API函数查询剩余的可用堆空间大小。书中提供了更多信息。 */
     vAssertCalled( __LINE__, __FILE__ );
 }
 /*-----------------------------------------------------------*/

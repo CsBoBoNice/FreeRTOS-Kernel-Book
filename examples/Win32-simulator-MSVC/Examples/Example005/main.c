@@ -3,49 +3,47 @@
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 以确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  此文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了FreeRTOS书籍《掌握FreeRTOS实时内核》中列出的示例的Windows端口实现。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org 包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
 
-/* Demo includes. */
+/* 演示相关包含文件 */
 #include "supporting_functions.h"
 
-/* The task function. */
+/* 任务函数声明 */
 void vTaskFunction( void * pvParameters );
 
-/* Define the strings that will be passed in as the task parameters.  These are
- * defined const and off the stack to ensure they remain valid when the tasks are
- * executing. */
-const char * pcTextForTask1 = "Task 1 is running\r\n";
-const char * pcTextForTask2 = "Task 2 is running\r\n";
+/* 定义将作为任务参数传递的字符串。
+ * 这些字符串被定义为const并且不在栈上，以确保它们在任务执行时保持有效。 */
+const char * pcTextForTask1 = "任务1正在运行\r\n";
+const char * pcTextForTask2 = "任务2正在运行\r\n";
 
 /*-----------------------------------------------------------*/
 
 int main( void )
 {
-    /* Create the first task at priority 1... */
+    /* 创建第一个任务，优先级为1... */
     xTaskCreate( vTaskFunction, "Task 1", 1000, ( void * ) pcTextForTask1, 1, NULL );
 
-    /* ... and the second task at priority 2.  The priority is the second to
-     * last parameter. */
+    /* ...然后创建第二个任务，优先级为2。
+     * 优先级是倒数第二个参数。数值越大，优先级越高。 */
     xTaskCreate( vTaskFunction, "Task 2", 1000, ( void * ) pcTextForTask2, 2, NULL );
 
-    /* Start the scheduler to start the tasks executing. */
+    /* 启动调度器，开始执行任务 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 如果程序执行到这里，说明出现了问题。
+     * vTaskStartScheduler()只有在没有足够的FreeRTOS堆内存来创建
+     * 空闲任务和计时器任务(如果配置了)时才会返回。
+     * 堆内存管理和捕获堆内存耗尽的技术在书中有详细描述。 */
     for( ; ; )
     {
     }
@@ -58,29 +56,28 @@ void vTaskFunction( void * pvParameters )
 {
     char * pcTaskName;
     TickType_t xLastWakeTime;
-    const TickType_t xDelay250ms = pdMS_TO_TICKS( 250UL );
+    const TickType_t xDelay250ms = pdMS_TO_TICKS( 250UL ); /* 将250毫秒转换为系统节拍数 */
 
-    /* The string to print out is passed in via the parameter.  Cast this to a
-     * character pointer. */
+    /* 通过参数传入要打印的字符串。将参数转换为字符指针类型。 */
     pcTaskName = ( char * ) pvParameters;
 
-    /* The xLastWakeTime variable needs to be initialized with the current tick
-     * count.  Note that this is the only time we access this variable.  From this
-     * point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-     * API function. */
+    /* xLastWakeTime变量需要使用当前节拍计数初始化。
+     * 注意这是我们唯一一次直接访问这个变量。
+     * 从这一点开始，xLastWakeTime将由vTaskDelayUntil() API函数自动管理。 */
     xLastWakeTime = xTaskGetTickCount();
 
-    /* As per most tasks, this task is implemented in an infinite loop. */
+    /* 和大多数任务一样，这个任务在一个无限循环中实现 */
     for( ; ; )
     {
-        /* Print out the name of this task. */
+        /* 打印出这个任务的名称 */
         vPrintString( pcTaskName );
 
-        /* We want this task to execute exactly every 250 milliseconds.  As per
-         * the vTaskDelay() function, time is measured in ticks, and the
-         * pdMS_TO_TICKS() macro is used to convert this to milliseconds.
-         * xLastWakeTime is automatically updated within vTaskDelayUntil() so does not
-         * have to be updated by this task code. */
+        /* 我们希望这个任务精确地每250毫秒执行一次。
+         * 与vTaskDelay()函数一样，时间以节拍为单位测量，
+         * pdMS_TO_TICKS()宏用于将毫秒转换为节拍数。
+         * xLastWakeTime在vTaskDelayUntil()内部自动更新，
+         * 因此此任务代码不需要更新它。
+         * 这与vTaskDelay()不同，vTaskDelayUntil()提供了更精确的周期时间控制。 */
         vTaskDelayUntil( &xLastWakeTime, xDelay250ms );
     }
 }

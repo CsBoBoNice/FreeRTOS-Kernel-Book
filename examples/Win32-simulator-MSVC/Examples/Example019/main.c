@@ -1,75 +1,67 @@
 /*
- *  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ *  版权所有 Amazon.com Inc. 或其附属公司。保留所有权利。
  *
- *  SPDX-License-Identifier: MIT-0
+ *  SPDX许可证标识符: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  此文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了《掌握FreeRTOS实时内核》一书中列出的示例的Windows端口实现。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org 头文件包含 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 
-/* Demo includes. */
+/* 示例支持函数头文件 */
 #include "supporting_functions.h"
 
-/* The number of the simulated interrupt used in this example.  Numbers 0 to 2
- * are used by the FreeRTOS Windows port itself, so 3 is the first number available
- * to the application. */
+/* 本示例中使用的模拟中断编号。编号0到2被FreeRTOS Windows端口本身使用，
+ * 因此3是应用程序可用的第一个编号。 */
 #define mainINTERRUPT_NUMBER    3
 
-/* The tasks to be created. */
+/* 要创建的任务函数声明 */
 static void vIntegerGenerator( void * pvParameters );
 static void vStringPrinter( void * pvParameters );
 
-/* The service routine for the (simulated) interrupt.  This is the interrupt
- * that the task will be synchronized with. */
+/* 中断服务程序（模拟）。这是任务将与之同步的中断。 */
 static uint32_t ulExampleInterruptHandler( void );
 
 /*-----------------------------------------------------------*/
 
-/* Declare two variables of type QueueHandle_t.  One queue will be read from
- * within an ISR, the other will be written to from within an ISR. */
+/* 声明两个QueueHandle_t类型的变量。一个队列将在ISR中读取，
+ * 另一个队列将在ISR中写入。 */
 QueueHandle_t xIntegerQueue, xStringQueue;
 
 int main( void )
 {
-    /* Before a queue can be used it must first be created.  Create both queues
-     * used by this example.  One queue can hold variables of type uint32_t,
-     * the other queue can hold variables of type char*.  Both queues can hold a
-     * maximum of 10 items.  A real application should check the return values to
-     * ensure the queues have been successfully created. */
+    /* 在使用队列之前必须先创建它。创建本示例使用的两个队列。
+     * 一个队列可以保存uint32_t类型的变量，另一个队列可以保存char*类型的变量。
+     * 两个队列都最多可以容纳10个项目。实际应用应检查返回值以确保队列已成功创建。 */
     xIntegerQueue = xQueueCreate( 10, sizeof( uint32_t ) );
     xStringQueue = xQueueCreate( 10, sizeof( char * ) );
 
-    /* Create the task that uses a queue to pass integers to the interrupt
-     * service	routine.  The task is created at priority 1. */
+    /* 创建使用队列向中断服务程序传递整数的任务。
+     * 该任务创建时优先级为1。 */
     xTaskCreate( vIntegerGenerator, "IntGen", 1000, NULL, 1, NULL );
 
-    /* Create the task that prints out the strings sent to it from the interrupt
-     * service routine.  The task is created at the higher priority of 2. */
+    /* 创建打印从中断服务程序发送给它的字符串的任务。
+     * 该任务以更高的优先级2创建。 */
     xTaskCreate( vStringPrinter, "String", 1000, NULL, 2, NULL );
 
-    /* Install the handler for the software interrupt.  The syntax necessary
-     * to do this is dependent on the FreeRTOS port being used.  The syntax
-     * shown here can only be used with the FreeRTOS Windows port, where such
-     * interrupts are only simulated. */
+    /* 安装软件中断的处理程序。执行此操作所需的语法取决于所使用的FreeRTOS端口。
+     * 此处显示的语法只能与FreeRTOS Windows端口一起使用，其中此类中断仅为模拟。 */
     vPortSetInterruptHandler( mainINTERRUPT_NUMBER, ulExampleInterruptHandler );
 
-    /* Start the scheduler so the created tasks start executing. */
+    /* 启动调度器，使创建的任务开始执行。 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 由于vTaskStartScheduler()仅在没有足够的FreeRTOS堆内存来创建空闲任务和
+     * （如配置的）定时器任务时才会返回，因此不应该到达以下行。
+     * 堆管理和捕获堆耗尽的技术在书中有描述。 */
     for( ; ; )
     {
     }
@@ -85,34 +77,32 @@ static void vIntegerGenerator( void * pvParameters )
     uint32_t ulValueToSend = 0;
     BaseType_t i;
 
-    /* Initialize the variable used by the call to vTaskDelayUntil(). */
+    /* 初始化vTaskDelayUntil()调用使用的变量。 */
     xLastExecutionTime = xTaskGetTickCount();
 
     for( ; ; )
     {
-        /* This is a periodic task.  Block until it is time to run again.
-         * The task will execute every 200ms. */
+        /* 这是一个周期性任务。阻塞，直到再次运行时间到。
+         * 任务将每200毫秒执行一次。 */
         vTaskDelayUntil( &xLastExecutionTime, xDelay200ms );
 
-        /* Send five numbers to the queue, each value one higher than the
-         * previous value.  The numbers are read from the queue by the interrupt
-         * service routine.  The interrupt	service routine always empties the
-         * queue, so this task is guaranteed to be able to write all five values
-         * without needing to specify a block time. */
+        /* 向队列发送五个数字，每个值比前一个值高一个。
+         * 这些数字由中断服务程序从队列中读取。中断服务程序
+         * 总是清空队列，所以这个任务保证能够写入所有五个值而
+         * 不需要指定阻塞时间。 */
         for( i = 0; i < 5; i++ )
         {
             xQueueSendToBack( xIntegerQueue, &ulValueToSend, xDontBlock );
             ulValueToSend++;
         }
 
-        /* Generate the interrupt so the interrupt service routine can read the
-         * values from the queue. The syntax used to generate a software interrupt
-         * is dependent on the FreeRTOS port being used.  The syntax used below can
-         * only be used with the FreeRTOS Windows port, in which such interrupts
-         * are only simulated.*/
-        vPrintString( "Generator task - About to generate an interrupt.\r\n" );
+        /* 生成中断，使中断服务程序可以从队列读取值。
+         * 用于生成软件中断的语法取决于所使用的FreeRTOS端口。
+         * 下面使用的语法只能用于FreeRTOS Windows端口，
+         * 在该端口中，此类中断仅为模拟。 */
+        vPrintString( "生成器任务 - 即将生成中断。\r\n" );
         vPortGenerateSimulatedInterrupt( mainINTERRUPT_NUMBER );
-        vPrintString( "Generator task - Interrupt generated.\r\n\r\n\r\n" );
+        vPrintString( "生成器任务 - 中断已生成。\r\n\r\n\r\n" );
     }
 }
 /*-----------------------------------------------------------*/
@@ -123,10 +113,10 @@ static void vStringPrinter( void * pvParameters )
 
     for( ; ; )
     {
-        /* Block on the queue to wait for data to arrive. */
+        /* 在队列上阻塞，等待数据到达。 */
         xQueueReceive( xStringQueue, &pcString, portMAX_DELAY );
 
-        /* Print out the received string. */
+        /* 打印接收到的字符串。 */
         vPrintString( pcString );
     }
 }
@@ -137,48 +127,43 @@ static uint32_t ulExampleInterruptHandler( void )
     BaseType_t xHigherPriorityTaskWoken;
     uint32_t ulReceivedNumber;
 
-/* The strings are declared static const to ensure they are not allocated on the
- * interrupt service routine's stack, and exist even when the interrupt service
- * routine is not executing. */
+/* 字符串声明为static const，以确保它们不会分配在中断服务程序的栈上，
+ * 并且即使中断服务程序不执行时也存在。 */
     static const char * pcStrings[] =
     {
-        "String 0\r\n",
-        "String 1\r\n",
-        "String 2\r\n",
-        "String 3\r\n"
+        "字符串 0\r\n",
+        "字符串 1\r\n",
+        "字符串 2\r\n",
+        "字符串 3\r\n"
     };
 
-    /* As always, xHigherPriorityTaskWoken is initialized to pdFALSE to be able
-     * to detect it getting set to pdTRUE inside an interrupt safe API function. */
+    /* 与往常一样，xHigherPriorityTaskWoken初始化为pdFALSE，以便能够
+     * 检测它在中断安全API函数内部被设置为pdTRUE。 */
     xHigherPriorityTaskWoken = pdFALSE;
 
-    /* Read from the queue until the queue is empty. */
+    /* 从队列读取，直到队列为空。 */
     while( xQueueReceiveFromISR( xIntegerQueue, &ulReceivedNumber, &xHigherPriorityTaskWoken ) != errQUEUE_EMPTY )
     {
-        /* Truncate the received value to the last two bits (values 0 to 3
-         * inc.), then use the truncated value as an index into the pcStrings[]
-         * array to select a string (char *) to send on the other queue. */
+        /* 将接收到的值截断为最后两位（值0到3），然后使用截断后的值
+         * 作为pcStrings[]数组的索引，以选择要在另一个队列上发送的字符串(char *)。 */
         ulReceivedNumber &= 0x03;
         xQueueSendToBackFromISR( xStringQueue, &pcStrings[ ulReceivedNumber ], &xHigherPriorityTaskWoken );
     }
 
-    /* If receiving from xIntegerQueue caused a task to leave the Blocked state,
-     * and if the priority of the task that left the Blocked state is higher than
-     * the priority of the task in the Running state, then xHigherPriorityTaskWoken
-     * will have been set to pdTRUE inside xQueueReceiveFromISR().
+    /* 如果从xIntegerQueue接收导致任务离开阻塞状态，并且如果离开
+     * 阻塞状态的任务的优先级高于运行状态任务的优先级，则
+     * xHigherPriorityTaskWoken将在xQueueReceiveFromISR()内部被设置为pdTRUE。
      *
-     * If sending to xStringQueue caused a task to leave the Blocked state, and
-     * if the priority of the task that left the Blocked state is higher than the
-     * priority of the task in the Running state, then xHigherPriorityTaskWoken
-     * will have been set to pdTRUE inside xQueueSendFromISR().
+     * 如果向xStringQueue发送导致任务离开阻塞状态，并且如果离开
+     * 阻塞状态的任务的优先级高于运行状态任务的优先级，则
+     * xHigherPriorityTaskWoken将在xQueueSendFromISR()内部被设置为pdTRUE。
      *
-     * xHigherPriorityTaskWoken is used as the parameter to portYIELD_FROM_ISR().
-     * If xHigherPriorityTaskWoken equals pdTRUE then calling portYIELD_FROM_ISR()
-     * will request a context switch.  If xHigherPriorityTaskWoken is still pdFALSE
-     * then calling portYIELD_FROM_ISR() will have no effect.
+     * xHigherPriorityTaskWoken用作portYIELD_FROM_ISR()的参数。
+     * 如果xHigherPriorityTaskWoken等于pdTRUE，则调用portYIELD_FROM_ISR()
+     * 将请求上下文切换。如果xHigherPriorityTaskWoken仍为pdFALSE，
+     * 则调用portYIELD_FROM_ISR()将没有效果。
      *
-     * The implementation of portYIELD_FROM_ISR() used by the Windows port includes
-     * a return statement, which is why this function does not explicitly return a
-     * value. */
+     * Windows端口使用的portYIELD_FROM_ISR()实现包括return语句，
+     * 这就是为什么此函数不显式返回值的原因。 */
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }

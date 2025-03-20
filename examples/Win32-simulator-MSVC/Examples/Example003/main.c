@@ -3,52 +3,49 @@
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  此文件是 FreeRTOS 发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了《掌握 FreeRTOS 实时内核》一书中列出的示例的 Windows 移植实现。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org 包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
+#include <stdint.h> /* 添加 uint32_t 的定义 */
 
-/* Demo includes. */
+/* 演示包含文件 */
 #include "supporting_functions.h"
 
-/* Used as a loop counter to create a very crude delay. */
+/* 用作循环计数器以创建一个非常粗略的延迟 */
 #define mainDELAY_LOOP_COUNT    ( 0xffffff )
 
-/* The task function. */
+/* 任务函数声明 */
 void vTaskFunction( void * pvParameters );
 
-/* Define the strings that will be passed in as the task parameters.  These are
- * defined const and off the stack to ensure they remain valid when the tasks are
- * executing. */
-const char * pcTextForTask1 = "Task 1 is running\r\n";
-const char * pcTextForTask2 = "Task 2 is running\r\n";
+/* 定义将作为任务参数传递的字符串。
+ * 这些被定义为 const 并且不在栈上，以确保当任务执行时它们保持有效。 */
+const char * pcTextForTask1 = "任务 1 正在运行\r\n";
+const char * pcTextForTask2 = "任务 2 正在运行\r\n";
 
 /*-----------------------------------------------------------*/
 
 int main( void )
 {
-    /* Create the first task at priority 1... */
+    /* 创建第一个任务，优先级为 1... */
     xTaskCreate( vTaskFunction, "Task 1", 1000, ( void * ) pcTextForTask1, 1, NULL );
 
-    /* ... and the second task at priority 2.  The priority is the second to
-     * last parameter. */
+    /* ...然后创建第二个任务，优先级为 2。优先级是倒数第二个参数。 */
     xTaskCreate( vTaskFunction, "Task 2", 1000, ( void * ) pcTextForTask2, 2, NULL );
 
-    /* Start the scheduler to start the tasks executing. */
+    /* 启动调度器，开始执行任务 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 下面的代码行永远不应该被执行，因为 vTaskStartScheduler() 
+     * 只有在没有足够的 FreeRTOS 堆内存来创建空闲任务和（如果配置了）定时器任务时才会返回。
+     * 堆管理和捕获堆耗尽的技术在书中有详细描述。 */
     for( ; ; )
     {
     }
@@ -62,22 +59,21 @@ void vTaskFunction( void * pvParameters )
     char * pcTaskName;
     volatile uint32_t ul;
 
-    /* The string to print out is passed in via the parameter.  Cast this to a
-     * character pointer. */
+    /* 通过参数传入要打印的字符串。将其转换为字符指针。 */
     pcTaskName = ( char * ) pvParameters;
 
-    /* As per most tasks, this task is implemented in an infinite loop. */
+    /* 像大多数任务一样，此任务在无限循环中实现 */
     for( ; ; )
     {
-        /* Print out the name of this task. */
+        /* 打印此任务的名称 */
         vPrintString( pcTaskName );
 
-        /* Delay for a period. */
+        /* 延迟一段时间 */
         for( ul = 0; ul < mainDELAY_LOOP_COUNT; ul++ )
         {
-            /* This loop is just a very crude delay implementation.  There is
-             * nothing to do in here.  Later exercises will replace this crude
-             * loop with a proper delay/sleep function. */
+            /* 这个循环只是一个非常粗略的延迟实现。
+             * 这里没有任何需要执行的内容。
+             * 后续练习将使用适当的延迟/睡眠函数替换这个粗略的循环。 */
         }
     }
 }

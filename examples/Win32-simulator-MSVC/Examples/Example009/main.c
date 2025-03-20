@@ -3,46 +3,45 @@
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  此文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  这包含了Windows端口实现的示例，这些示例在FreeRTOS书籍
+ *  《掌握FreeRTOS实时内核》中列出。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS.org头文件包含 */
 #include "FreeRTOS.h"
 #include "task.h"
 
-/* Demo includes. */
+/* 演示相关的头文件包含 */
 #include "supporting_functions.h"
 
-/* The two task functions. */
+/* 两个任务函数的声明 */
 void vTask1( void * pvParameters );
 void vTask2( void * pvParameters );
 
-/* Used to hold the handle of Task2. */
+/* 用于保存Task2的句柄 */
 TaskHandle_t xTask2Handle;
 
 /*-----------------------------------------------------------*/
 
 int main( void )
 {
-    /* Create the first task at priority 1.  This time the task parameter is
-     * not used and is set to NULL.  The task handle is also not used so likewise
-     * is also set to NULL. */
+    /* 创建第一个任务，优先级为1。
+     * 这次任务参数未使用，设置为NULL。
+     * 任务句柄也未使用，同样设置为NULL。 */
     xTaskCreate( vTask1, "Task 1", 1000, NULL, 1, NULL );
-    /* The task is created at priority 1 ^. */
+    /* 任务创建时的优先级为1 ^ */
 
-    /* Start the scheduler to start the tasks executing. */
+    /* 启动调度器，开始执行任务 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 以下代码行永远不应该被执行，因为vTaskStartScheduler()
+     * 只有在没有足够的FreeRTOS堆内存来创建空闲任务和(如果配置了)
+     * 定时器任务时才会返回。堆管理和捕获堆耗尽的技术在书中有详细描述。 */
     for( ; ; )
     {
     }
@@ -53,22 +52,23 @@ int main( void )
 
 void vTask1( void * pvParameters )
 {
+    /* 定义一个100毫秒的延时时间常量 */
     const TickType_t xDelay100ms = pdMS_TO_TICKS( 100UL );
 
     for( ; ; )
     {
-        /* Print out the name of this task. */
-        vPrintString( "Task1 is running\r\n" );
+        /* 打印此任务的名称 */
+        vPrintString( "Task1 正在运行\r\n" );
 
-        /* Create task 2 at a higher priority.  Again the task parameter is not
-         * used so is set to NULL - BUT this time we want to obtain a handle to the
-         * task so pass in the address of the xTask2Handle variable. */
+        /* 以更高优先级创建任务2。
+         * 同样，任务参数未使用，设置为NULL。
+         * 但这次我们需要获取任务的句柄，所以传入xTask2Handle变量的地址。 */
         xTaskCreate( vTask2, "Task 2", 1000, NULL, 2, &xTask2Handle );
-        /* The task handle is the last parameter ^^^^^^^^^^^^^ */
+        /* 任务句柄是最后一个参数 ^^^^^^^^^^^^^ */
 
-        /* Task2 has/had the higher priority, so for Task1 to reach here Task2
-         * must have already executed and deleted itself.  Delay for 100
-         * milliseconds. */
+        /* 由于任务2具有更高的优先级，所以任务1能够执行到这里，
+         * 说明任务2必须已经执行并删除了自己。
+         * 延时100毫秒后继续执行。 */
         vTaskDelay( xDelay100ms );
     }
 }
@@ -77,10 +77,10 @@ void vTask1( void * pvParameters )
 
 void vTask2( void * pvParameters )
 {
-    /* Task2 does nothing but delete itself.  To do this it could call vTaskDelete()
-     * using a NULL parameter, but instead and purely for demonstration purposes it
-     * instead calls vTaskDelete() with its own task handle. */
-    vPrintString( "Task2 is running and about to delete itself\r\n" );
+    /* 任务2除了删除自己外不做任何事情。
+     * 为了实现这一点，它可以调用vTaskDelete()并使用NULL参数，
+     * 但为了演示目的，它使用自己的任务句柄调用vTaskDelete()。 */
+    vPrintString( "Task2 正在运行并即将删除自己\r\n" );
     vTaskDelete( xTask2Handle );
 }
 /*-----------------------------------------------------------*/

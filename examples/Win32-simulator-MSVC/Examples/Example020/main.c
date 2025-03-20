@@ -3,66 +3,61 @@
  *
  *  SPDX-License-Identifier: MIT-0
  * 
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  请访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  此文件是FreeRTOS发行版的一部分。
  * 
- *  This contains the Windows port implementation of the examples listed in the 
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  本文件包含FreeRTOS书籍《掌握FreeRTOS实时内核》中列出的示例的Windows移植实现。
  *
  */
 
-/* Standard includes. */
+/* 标准包含文件 */
 #include <stdio.h>
 #include <conio.h>
 
-/* FreeRTOS.org includes. */
+/* FreeRTOS包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 
-/* Demo includes. */
+/* 演示包含文件 */
 #include "supporting_functions.h"
 
-/* The task to be created.  Two instances of this task are created. */
+/* 要创建的任务。创建了此任务的两个实例。 */
 static void prvPrintTask( void * pvParameters );
 
-/* The function that uses a mutex to control access to standard out. */
+/* 使用互斥量控制对标准输出的访问的函数。 */
 static void prvNewPrintString( const char * pcString );
 
 /*-----------------------------------------------------------*/
 
-/* Declare a variable of type SemaphoreHandle_t.  This is used to reference the
- * mutex type semaphore that is used to ensure mutual exclusive access to stdout. */
+/* 声明一个SemaphoreHandle_t类型的变量。这用于引用确保对stdout互斥访问的互斥量类型信号量。 */
 SemaphoreHandle_t xMutex;
 
-/* The tasks block for a pseudo random time between 0 and xMaxBlockTime ticks. */
+/* 任务会在0到xMaxBlockTime之间的伪随机时间内阻塞。 */
 const TickType_t xMaxBlockTimeTicks = 0x20;
 
 int main( void )
 {
-    /* Before a semaphore is used it must be explicitly created.  In this example
-     * a mutex type semaphore is created. */
+    /* 在使用信号量之前，必须显式创建它。在此示例中，创建了一个互斥量类型的信号量。 */
     xMutex = xSemaphoreCreateMutex();
 
-    /* Check the semaphore was created successfully. */
+    /* 检查信号量是否成功创建。 */
     if( xMutex != NULL )
     {
-        /* Create two instances of the tasks that attempt to write stdout.  The
-         * string they attempt to write is passed into the task as the task's
-         * parameter.  The tasks are created at different priorities so some
-         * pre-emption will occur. */
-        xTaskCreate( prvPrintTask, "Print1", 1000, "Task 1 ******************************************\r\n", 1, NULL );
-        xTaskCreate( prvPrintTask, "Print2", 1000, "Task 2 ------------------------------------------\r\n", 2, NULL );
+        /* 创建两个尝试写入stdout的任务实例。
+         * 它们尝试写入的字符串作为任务参数传入。
+         * 创建任务时使用不同的优先级，因此会发生一些抢占。 */
+        xTaskCreate( prvPrintTask, "Print1", 1000, "任务1 ******************************************\r\n", 1, NULL );
+        xTaskCreate( prvPrintTask, "Print2", 1000, "任务2 ------------------------------------------\r\n", 2, NULL );
 
-        /* Start the scheduler so the created tasks start executing. */
+        /* 启动调度器，使创建的任务开始执行。 */
         vTaskStartScheduler();
     }
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 以下代码行永远不应该被执行，因为vTaskStartScheduler()
+     * 只有在没有足够的FreeRTOS堆内存来创建空闲任务和（如果配置了）定时器任务时才会返回。
+     * 堆管理和捕获堆耗尽的技术在书中有描述。 */
     for( ; ; )
     {
     }
@@ -73,28 +68,22 @@ int main( void )
 
 static void prvNewPrintString( const char * pcString )
 {
-    /* The semaphore is created before the scheduler is started so already
-     * exists by the time this task executes.
+    /* 信号量在调度器启动前创建，因此在此任务执行时已经存在。
      *
-     * Attempt to take the semaphore, blocking indefinitely if the mutex is not
-     * available immediately.  The call to xSemaphoreTake() will only return when
-     * the semaphore has been successfully obtained so there is no need to check the
-     * return value.  If any other delay period was used then the code must check
-     * that xSemaphoreTake() returns pdTRUE before accessing the resource (in this
-     * case standard out. */
+     * 尝试获取信号量，如果互斥量不能立即可用，则无限期阻塞。
+     * 对xSemaphoreTake()的调用只有在成功获取信号量后才会返回，
+     * 因此无需检查返回值。如果使用任何其他延迟期，则代码必须检查
+     * xSemaphoreTake()是否返回pdTRUE，然后才能访问资源（在本例中是标准输出）。 */
     xSemaphoreTake( xMutex, portMAX_DELAY );
     {
-        /* The following line will only execute once the semaphore has been
-         * successfully obtained - so standard out can be accessed freely. */
+        /* 只有在成功获取信号量后，才会执行以下行 - 因此可以自由访问标准输出。 */
         printf( "%s", pcString );
         fflush( stdout );
     }
     xSemaphoreGive( xMutex );
 
-    /* Allow any key to stop the application running.  A real application that
-     * actually used the key value should protect access to the keyboard too.  A
-     * real application is very unlikely to have more than one task processing
-     * key presses though! */
+    /* 允许按任意键停止应用程序运行。实际应用程序如果真正使用键值，
+     * 也应该保护对键盘的访问。不过，实际应用程序不太可能有多个任务处理按键！ */
     if( _kbhit() != 0 )
     {
         vTaskEndScheduler();
@@ -107,24 +96,22 @@ static void prvPrintTask( void * pvParameters )
     char * pcStringToPrint;
     const TickType_t xSlowDownDelay = pdMS_TO_TICKS( 5UL );
 
-    /* Two instances of this task are created.  The string printed by the task
-     * is passed into the task using the task's parameter.  The parameter is cast
-     * to the required type. */
+    /* 创建此任务的两个实例。任务打印的字符串通过任务参数传递给任务。
+     * 参数被转换为所需的类型。 */
     pcStringToPrint = ( char * ) pvParameters;
 
     for( ; ; )
     {
-        /* Print out the string using the newly defined function. */
+        /* 使用新定义的函数打印字符串。 */
         prvNewPrintString( pcStringToPrint );
 
-        /* Wait a pseudo random time.  Note that rand() is not necessarily
-         * re-entrant, but in this case it does not really matter as the code does
-         * not care what value is returned.  In a more secure application a version
-         * of rand() that is known to be re-entrant should be used - or calls to
-         * rand() should be protected using a critical section. */
+        /* 等待伪随机时间。注意，rand()不一定是可重入的，
+         * 但在这种情况下，代码不关心返回什么值，所以并不重要。
+         * 在更安全的应用程序中，应该使用已知可重入的rand()版本，
+         * 或者使用临界区保护对rand()的调用。 */
         vTaskDelay( rand() % xMaxBlockTimeTicks );
 
-        /* Just to ensure the scrolling is not too fast! */
+        /* 仅确保滚动不会太快！ */
         vTaskDelay( xSlowDownDelay );
     }
 }

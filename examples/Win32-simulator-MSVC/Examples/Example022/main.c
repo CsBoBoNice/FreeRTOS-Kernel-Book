@@ -1,84 +1,81 @@
 /*
- *  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ *  版权所有 Amazon.com Inc. 或其附属公司。保留所有权利。
  *
  *  SPDX-License-Identifier: MIT-0
  *
- *  VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+ *  访问 http://www.FreeRTOS.org 确保您使用的是最新版本。
  *
- *  This file is part of the FreeRTOS distribution.
+ *  此文件是FreeRTOS发行版的一部分。
  *
- *  This contains the Windows port implementation of the examples listed in the
- *  FreeRTOS book Mastering_the_FreeRTOS_Real_Time_Kernel.
+ *  本文件包含FreeRTOS书籍《掌握FreeRTOS实时内核》中列出的示例的Windows端口实现。
  *
  */
 
-/* FreeRTOS.org includes. */
+/* 标准头文件 */
+#include <stdint.h>
+#include <stdlib.h>
+
+/* FreeRTOS.org 包含文件 */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "event_groups.h"
-#include "timers.h" /* For the xTimerPendFunctionCallFromISR() function. */
+#include "timers.h" /* 用于xTimerPendFunctionCallFromISR()函数 */
 
-/* Demo includes. */
+/* 演示包含文件 */
 #include "supporting_functions.h"
 
-/* The number of the simulated interrupt used in this example.  Numbers 0 to 2
- * are used by the FreeRTOS Windows port itself, so 3 is the first number available
- * to the application. */
+/* 本示例中使用的模拟中断编号。数字0到2由FreeRTOS Windows端口本身使用，
+ * 因此3是应用程序可用的第一个编号。 */
 #define mainINTERRUPT_NUMBER    3
 
-/* Definitions for the event bits in the event group. */
-#define mainFIRST_TASK_BIT      ( 1UL << 0UL ) /* Event bit 0, which is set by a task. */
-#define mainSECOND_TASK_BIT     ( 1UL << 1UL ) /* Event bit 1, which is set by a task. */
-#define mainISR_BIT             ( 1UL << 2UL ) /* Event bit 2, which is set by an ISR. */
+/* 事件组中事件位的定义 */
+#define mainFIRST_TASK_BIT      ( 1UL << 0UL ) /* 事件位0，由任务设置 */
+#define mainSECOND_TASK_BIT     ( 1UL << 1UL ) /* 事件位1，由任务设置 */
+#define mainISR_BIT             ( 1UL << 2UL ) /* 事件位2，由ISR(中断服务程序)设置 */
 
-/* The tasks to be created. */
+/* 要创建的任务声明 */
 static void vIntegerGenerator( void * pvParameters );
 static void vEventBitSettingTask( void * pvParameters );
 static void vEventBitReadingTask( void * pvParameters );
 
-/* A function that can be deferred to run in the RTOS daemon task.  The function
- * prints out the string passed to it using the pvParameter1 parameter. */
+/* 可以延迟在RTOS守护任务中运行的函数。
+ * 该函数使用pvParameter1参数打印传递给它的字符串。 */
 void vPrintStringFromDaemonTask( void * pvParameter1,
                                  uint32_t ulParameter2 );
 
-/* The service routine for the (simulated) interrupt.  This is the interrupt
- * that sets an event bit in the event group. */
+/* (模拟)中断的服务例程。
+ * 这是在事件组中设置事件位的中断。 */
 static uint32_t ulEventBitSettingISR( void );
 
 /*-----------------------------------------------------------*/
 
-/* Declare the event group in which bits are set from both a task and an ISR. */
+/* 声明事件组，其中的位由任务和ISR同时设置 */
 EventGroupHandle_t xEventGroup;
 
 int main( void )
 {
-    /* Before an event group can be used it must first be created. */
+    /* 在使用事件组之前，必须先创建它 */
     xEventGroup = xEventGroupCreate();
 
-    /* Create the task that sets event bits in the event group. */
+    /* 创建在事件组中设置事件位的任务 */
     xTaskCreate( vEventBitSettingTask, "BitSetter", 1000, NULL, 1, NULL );
 
-    /* Create the task that waits for event bits to get set in the event
-     * group. */
+    /* 创建等待事件组中事件位被设置的任务 */
     xTaskCreate( vEventBitReadingTask, "BitReader", 1000, NULL, 2, NULL );
 
-    /* Create the task that is used to periodically generate a software
-     * interrupt. */
+    /* 创建用于定期生成软件中断的任务 */
     xTaskCreate( vIntegerGenerator, "IntGen", 1000, NULL, 3, NULL );
 
-    /* Install the handler for the software interrupt.  The syntax necessary
-     * to do this is dependent on the FreeRTOS port being used.  The syntax
-     * shown here can only be used with the FreeRTOS Windows port, where such
-     * interrupts are only simulated. */
+    /* 安装软件中断的处理程序。执行此操作所需的语法取决于所使用的FreeRTOS端口。
+     * 此处显示的语法只能与FreeRTOS Windows端口一起使用，其中此类中断只是模拟的。 */
     vPortSetInterruptHandler( mainINTERRUPT_NUMBER, ulEventBitSettingISR );
 
-    /* Start the scheduler so the created tasks start executing. */
+    /* 启动调度器，使创建的任务开始执行 */
     vTaskStartScheduler();
 
-    /* The following line should never be reached because vTaskStartScheduler()
-    *  will only return if there was not enough FreeRTOS heap memory available to
-    *  create the Idle and (if configured) Timer tasks.  Heap management, and
-    *  techniques for trapping heap exhaustion, are described in the book text. */
+    /* 由于vTaskStartScheduler()只有在没有足够的FreeRTOS堆内存可用于创建
+     * 空闲任务和（如果配置了）定时器任务时才会返回，因此不应该执行到以下代码行。
+     * 堆管理和捕获堆耗尽的技术在书中有详细描述。 */
     for( ; ; )
     {
     }
@@ -89,25 +86,22 @@ int main( void )
 
 static void vEventBitSettingTask( void * pvParameters )
 {
-    const TickType_t xDelay200ms = pdMS_TO_TICKS( 200UL );
+    const TickType_t xDelay200ms = pdMS_TO_TICKS( 200UL ); /* 将200毫秒转换为系统节拍数 */
 
     for( ; ; )
     {
-        /* Delay for a short while before starting the next loop. */
+        /* 在开始下一个循环之前延迟一小段时间 */
         vTaskDelay( xDelay200ms );
 
-        /* Print out a message to say event bit 0 is about to be set by the
-         * task, then set event bit 0. */
-        vPrintString( "Bit setting task -\t about to set bit 0.\r\n" );
+        /* 打印消息说任务即将设置事件位0，然后设置事件位0 */
+        vPrintString( "位设置任务 -\t 即将设置位0.\r\n" );
         xEventGroupSetBits( xEventGroup, mainFIRST_TASK_BIT );
 
-        /* Delay for a short while before setting the other bit set within this
-         * task. */
+        /* 在设置此任务内设置的另一个位之前短暂延迟 */
         vTaskDelay( xDelay200ms );
 
-        /* Print out a message to say event bit 1 is about to be set by the
-         * task, then set event bit 1. */
-        vPrintString( "Bit setting task -\t about to set bit 1.\r\n" );
+        /* 打印消息说任务即将设置事件位1，然后设置事件位1 */
+        vPrintString( "位设置任务 -\t 即将设置位1.\r\n" );
         xEventGroupSetBits( xEventGroup, mainSECOND_TASK_BIT );
     }
 }
@@ -117,81 +111,76 @@ static uint32_t ulEventBitSettingISR( void )
 {
     BaseType_t xHigherPriorityTaskWoken;
 
-/* The string is not printed within the interrupt service, but is instead
- * sent to the RTOS daemon task for printing.  It is therefore declared static to
- * ensure the compiler does not allocate the string on the stack of the ISR (as the
- * ISR's stack frame will not exist when the string is printed from the daemon
- * task. */
-    static const char * pcString = "Bit setting ISR -\t about to set bit 2.\r\n";
+/* 字符串不会在中断服务中打印，而是发送到RTOS守护任务以进行打印。
+ * 因此声明为静态，以确保编译器不会在ISR的栈上分配字符串（因为
+ * 从守护任务打印字符串时，ISR的栈帧将不存在）。 */
+    static const char * pcString = "位设置ISR -\t 即将设置位2.\r\n";
 
-    /* As always, xHigherPriorityTaskWoken is initialized to pdFALSE. */
+    /* 如常，xHigherPriorityTaskWoken初始化为pdFALSE */
     xHigherPriorityTaskWoken = pdFALSE;
 
-    /* Print out a message to say bit 2 is about to be set.  Messages cannot be
-     * printed from an ISR, so defer the actual output to the RTOS daemon task by
-     * pending a function call to run in the context of the RTOS daemon task. */
+    /* 打印消息说位2即将被设置。无法从ISR打印消息，
+     * 因此通过挂起函数调用在RTOS守护任务的上下文中运行，
+     * 将实际输出延迟到RTOS守护任务。 */
     xTimerPendFunctionCallFromISR( vPrintStringFromDaemonTask, ( void * ) pcString, 0, &xHigherPriorityTaskWoken );
 
-    /* Set bit 2 in the event group. */
+    /* 在事件组中设置位2 */
     xEventGroupSetBitsFromISR( xEventGroup, mainISR_BIT, &xHigherPriorityTaskWoken );
 
-    /* xEventGroupSetBitsFromISR() writes to the timer command queue.  If
-     * writing to the timer command queue results in the RTOS daemon task leaving
-     * the Blocked state, and if the priority of the RTOS daemon task is higher
-     * than the priority of the currently executing task (the task this interrupt
-     * interrupted) then xHigherPriorityTaskWoken will have been set to pdTRUE
-     * inside xEventGroupSetBitsFromISR().
+    /* xEventGroupSetBitsFromISR()写入定时器命令队列。如果写入定时器命令队列
+     * 导致RTOS守护任务离开阻塞状态，并且如果RTOS守护任务的优先级高于
+     * 当前执行任务的优先级（被该中断中断的任务），那么xHigherPriorityTaskWoken
+     * 将在xEventGroupSetBitsFromISR()内部被设置为pdTRUE。
      *
-     * xHigherPriorityTaskWoken is used as the parameter to portYIELD_FROM_ISR().
-     * If xHigherPriorityTaskWoken equals pdTRUE then calling portYIELD_FROM_ISR()
-     * will request a context switch.  If xHigherPriorityTaskWoken is still pdFALSE
-     * then calling portYIELD_FROM_ISR() will have no effect.
+     * xHigherPriorityTaskWoken用作portYIELD_FROM_ISR()的参数。
+     * 如果xHigherPriorityTaskWoken等于pdTRUE，则调用portYIELD_FROM_ISR()
+     * 将请求上下文切换。如果xHigherPriorityTaskWoken仍为pdFALSE，
+     * 则调用portYIELD_FROM_ISR()将没有效果。
      *
-     * The implementation of portYIELD_FROM_ISR() used by the Windows port includes
-     * a return statement, which is why this function does not explicitly return a
-     * value. */
+     * Windows端口使用的portYIELD_FROM_ISR()实现包含返回语句，
+     * 这就是为什么此函数不显式返回值的原因。 */
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 /*-----------------------------------------------------------*/
 
 static void vEventBitReadingTask( void * pvParameters )
 {
-    const EventBits_t xBitsToWaitFor = ( mainFIRST_TASK_BIT | mainSECOND_TASK_BIT | mainISR_BIT );
+    const EventBits_t xBitsToWaitFor = ( mainFIRST_TASK_BIT | mainSECOND_TASK_BIT | mainISR_BIT ); /* 等待三个事件位 */
     EventBits_t xEventGroupValue;
 
     for( ; ; )
     {
-        /* Block to wait for event bits to become set within the event group. */
-        xEventGroupValue = xEventGroupWaitBits( /* The event group to read. */
+        /* 阻塞等待事件组中事件位被设置 */
+        xEventGroupValue = xEventGroupWaitBits( /* 要读取的事件组 */
             xEventGroup,
 
-            /* Bits to test. */
+            /* 要测试的位 */
             xBitsToWaitFor,
 
-            /* Clear bits on exit if the
-            *  unblock condition is met. */
+            /* 如果解除阻塞条件满足，
+             * 则退出时清除位 */
             pdTRUE,
 
-            /* Don't wait for all bits. */
+            /* 不等待所有位 */
             pdFALSE,
 
-            /* Don't time out. */
+            /* 不超时 */
             portMAX_DELAY );
 
-        /* Print a message for each bit that was set. */
+        /* 为每个被设置的位打印消息 */
         if( ( xEventGroupValue & mainFIRST_TASK_BIT ) != 0 )
         {
-            vPrintString( "Bit reading task -\t event bit 0 was set\r\n" );
+            vPrintString( "位读取任务 -\t 事件位0已设置\r\n" );
         }
 
         if( ( xEventGroupValue & mainSECOND_TASK_BIT ) != 0 )
         {
-            vPrintString( "Bit reading task -\t event bit 1 was set\r\n" );
+            vPrintString( "位读取任务 -\t 事件位1已设置\r\n" );
         }
 
         if( ( xEventGroupValue & mainISR_BIT ) != 0 )
         {
-            vPrintString( "Bit reading task -\t event bit 2 was set\r\n" );
+            vPrintString( "位读取任务 -\t 事件位2已设置\r\n" );
         }
 
         vPrintString( "\r\n" );
@@ -202,8 +191,7 @@ static void vEventBitReadingTask( void * pvParameters )
 void vPrintStringFromDaemonTask( void * pvParameter1,
                                  uint32_t ulParameter2 )
 {
-    /* The string to print is passed into this function using the pvParameter1
-     * parameter. */
+    /* 要打印的字符串通过pvParameter1参数传递给此函数 */
     vPrintString( ( const char * ) pvParameter1 );
 }
 /*-----------------------------------------------------------*/
@@ -211,18 +199,18 @@ void vPrintStringFromDaemonTask( void * pvParameter1,
 static void vIntegerGenerator( void * pvParameters )
 {
     TickType_t xLastExecutionTime;
-    const TickType_t xDelay500ms = pdMS_TO_TICKS( 500UL );
+    const TickType_t xDelay500ms = pdMS_TO_TICKS( 500UL ); /* 将500毫秒转换为系统节拍数 */
 
-    /* Initialize the variable used by the call to vTaskDelayUntil(). */
+    /* 初始化vTaskDelayUntil()使用的变量 */
     xLastExecutionTime = xTaskGetTickCount();
 
     for( ; ; )
     {
-        /* This is a periodic task.  Block until it is time to run again.
-         * The task will execute every 500ms. */
+        /* 这是一个周期性任务。阻塞直到再次运行的时间到来。
+         * 该任务将每500毫秒执行一次。 */
         vTaskDelayUntil( &xLastExecutionTime, xDelay500ms );
 
-        /* Generate the interrupt that will set a bit in the event group. */
+        /* 生成将在事件组中设置位的中断 */
         vPortGenerateSimulatedInterrupt( mainINTERRUPT_NUMBER );
     }
 }
