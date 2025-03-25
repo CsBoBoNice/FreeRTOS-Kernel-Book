@@ -1,8 +1,8 @@
-### 缩略语列表
+### 缩略词列表
 
-| 缩略语 | 含义 |
+| 缩略词 | 全称                             |
 |------|---------------------------------------------|
-| ADC  | 模数转换器 (Analog to Digital Converter) |
+| ADC  | 模拟数字转换器 (Analog to Digital Converter) |
 | API  | 应用程序编程接口 (Application Programming Interface) |
 | DMA  | 直接内存访问 (Direct Memory Access) |
 | FAQ  | 常见问题解答 (Frequently Asked Question) |
@@ -18,6 +18,6 @@
 | SIL  | 安全完整性等级 (Safety Integrity Level) |
 | SPI  | 串行外设接口 (Serial Peripheral Interface) |
 | TCB  | 任务控制块 (Task Control Block) |
-| UART | 异步串行收发器 (Universal Asynchronous Receiver/Transmitter) |
+| UART | 通用异步收发器 (Universal Asynchronous Receiver/Transmitter) |
 * * *
 
