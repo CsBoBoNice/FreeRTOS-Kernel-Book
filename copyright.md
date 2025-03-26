@@ -9,9 +9,9 @@
 </br>
 </br>
 
-*除非另有说明，所有文本、源代码和图表均为亚马逊网络服务的独家财产。*
+*除非正文中另有说明，所有文本、源代码和图表均为亚马逊网络服务（Amazon Web Services）的独有财产。*
 
-© 2023 Amazon.com, Inc.或其附属公司。保留所有权利。
+© 2023 Amazon.com, Inc. 或其附属机构。保留所有权利。
 
 <https://www.FreeRTOS.org> <https://forums.FreeRTOS.org> <https://github.com/FreeRTOS>
 
@@ -51,9 +51,9 @@
 
 * * *
 
-*本内容免费提供。**作为回报，我们请求您创建一个拉取请求以提供更正**。*
+*此文本免费提供。**作为回报，我们恳请您通过创建拉取请求（pull request）来提供更正**。*
 </br>
-*请将反馈和评论发布至 [https://forums.FreeRTOS.org](https://forums.FreeRTOS.org)。*
+*请将反馈和评论发布到[https://forums.FreeRTOS.org](https://forums.FreeRTOS.org)。*
 
 * * *
 
